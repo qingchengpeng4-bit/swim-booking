@@ -1,5 +1,5 @@
 import { BookingStatus, SlotStatus, type CourseType, type Prisma } from "@prisma/client";
-import { COURSE_LABELS, getCourseCapacity, isGroupCourse } from "@/lib/course";
+import { COURSE_LABELS, getCourseCapacity } from "@/lib/course";
 import { formatShanghaiDateTime } from "@/lib/dates";
 import {
   calculateSlotDisplayStatus,
@@ -7,6 +7,8 @@ import {
   slotStatusText,
 } from "@/lib/slot-status";
 import { prisma } from "@/lib/db";
+import { getSlotCourseStateAfterCancel } from "@/lib/booking-rules";
+import { toCoachSlotDetail, toParentSlotDetail } from "@/lib/privacy-rules";
 
 type TxClient = Prisma.TransactionClient;
 
@@ -20,27 +22,15 @@ export async function refreshSlotCourseState(tx: TxClient, slotId: string) {
       createdAt: "asc",
     },
     select: {
+      status: true,
       courseType: true,
     },
   });
 
-  if (activeBookings.length === 0) {
-    return tx.slot.update({
-      where: { id: slotId },
-      data: {
-        courseType: null,
-        capacity: null,
-      },
-    });
-  }
-
-  const courseType = activeBookings[0].courseType;
+  const nextCourseState = getSlotCourseStateAfterCancel(activeBookings);
   return tx.slot.update({
     where: { id: slotId },
-    data: {
-      courseType,
-      capacity: getCourseCapacity(courseType),
-    },
+    data: nextCourseState,
   });
 }
 
@@ -98,18 +88,7 @@ export async function getParentSlotDetail(slotId: string) {
 
   if (!slot) return null;
 
-  const activeCount = slot.bookings.length;
-  const summary = getSlotPublicSummary(slot, activeCount);
-
-  return {
-    ...summary,
-    registeredStudentNames: isGroupCourse(slot.courseType)
-      ? slot.bookings.map((booking) => booking.studentName)
-      : [],
-    reminder: isGroupCourse(slot.courseType) || slot.courseType === null
-      ? "1v2 / 1v3 为固定拼团课程，请确认你已和同伴及教练沟通好，再报名。若截止时间前未满员，课程将自动取消。"
-      : null,
-  };
+  return toParentSlotDetail(slot, slot.bookings);
 }
 
 export async function getCoachSlotDetail(slotId: string) {
@@ -137,16 +116,7 @@ export async function getCoachSlotDetail(slotId: string) {
 
   if (!slot) return null;
 
-  const activeCount = slot.bookings.filter((booking) => booking.status === BookingStatus.ACTIVE).length;
-
-  return {
-    ...getSlotPublicSummary(slot, activeCount),
-    bookings: slot.bookings.map((booking) => ({
-      ...booking,
-      createdAt: booking.createdAt.toISOString(),
-      cancelledAt: booking.cancelledAt?.toISOString() ?? null,
-    })),
-  };
+  return toCoachSlotDetail(slot, slot.bookings);
 }
 
 export function getSlotPublicSummary(

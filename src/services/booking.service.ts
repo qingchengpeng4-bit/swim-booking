@@ -1,11 +1,12 @@
 import { BookingStatus, SlotStatus, type CourseType } from "@prisma/client";
-import { getCourseCapacity } from "@/lib/course";
 import { canParentCancelBooking } from "@/lib/slot-status";
 import { prisma } from "@/lib/db";
 import { BusinessError } from "@/services/errors";
 import { refreshSlotCourseState } from "@/services/slot.service";
 import { isTodayInShanghai } from "@/lib/dates";
 import { APP_ERRORS } from "@/lib/app-errors";
+import { canCancelActiveBooking, canJoinSlot } from "@/lib/booking-rules";
+import { toParentBookingView } from "@/lib/privacy-rules";
 
 export type CreateBookingInput = {
   slotId: string;
@@ -64,30 +65,27 @@ export async function createParentBooking(input: CreateBookingInput) {
         createdAt: "asc",
       },
       select: {
+        status: true,
         courseType: true,
       },
     });
 
-    const activeCount = activeBookings.length;
-    const lockedCourseType = slot.courseType ?? activeBookings[0]?.courseType ?? null;
+    const joinResult = canJoinSlot({
+      slot,
+      activeBookings,
+      requestedCourseType: input.courseType,
+    });
 
-    if (lockedCourseType && lockedCourseType !== input.courseType) {
-      throw new BusinessError(APP_ERRORS.COURSE_TYPE_MISMATCH);
-    }
-
-    const courseTypeToUse = lockedCourseType ?? input.courseType;
-    const capacity = slot.capacity ?? getCourseCapacity(courseTypeToUse);
-
-    if (activeCount >= capacity) {
-      throw new BusinessError(APP_ERRORS.SLOT_ALREADY_FULL);
+    if (!joinResult.ok) {
+      throw new BusinessError(joinResult.error ?? APP_ERRORS.SLOT_CLOSED);
     }
 
     if (!slot.courseType || slot.capacity === null) {
       await tx.slot.update({
         where: { id: slot.id },
         data: {
-          courseType: courseTypeToUse,
-          capacity,
+          courseType: joinResult.lockedCourseType,
+          capacity: joinResult.capacity,
         },
       });
     }
@@ -98,7 +96,7 @@ export async function createParentBooking(input: CreateBookingInput) {
         coachId: slot.coachId,
         studentName: input.studentName,
         contactPhone: input.contactPhone,
-        courseType: courseTypeToUse,
+        courseType: joinResult.lockedCourseType,
         remark: input.remark?.trim() || null,
       },
       select: {
@@ -134,7 +132,7 @@ export async function cancelParentBooking(input: CancelBookingInput) {
       throw new BusinessError(APP_ERRORS.BOOKING_PHONE_MISMATCH);
     }
 
-    if (booking.status !== BookingStatus.ACTIVE) {
+    if (!canCancelActiveBooking(booking)) {
       throw new BusinessError(APP_ERRORS.BOOKING_ALREADY_CANCELLED);
     }
 
@@ -178,7 +176,7 @@ export async function cancelCoachBooking(input: CoachCancelBookingInput) {
       throw new BusinessError(APP_ERRORS.BOOKING_NOT_FOUND);
     }
 
-    if (booking.status !== BookingStatus.ACTIVE) {
+    if (!canCancelActiveBooking(booking)) {
       throw new BusinessError(APP_ERRORS.BOOKING_ALREADY_CANCELLED);
     }
 
@@ -218,19 +216,13 @@ export async function getBookingsByContactPhone(contactPhone: string) {
     },
   });
 
-  return bookings.map((booking) => ({
-    id: booking.id,
-    slotId: booking.slotId,
-    studentName: booking.studentName,
-    courseType: booking.courseType,
-    status: booking.status,
-    startAt: booking.slot.startAt.toISOString(),
-    endAt: booking.slot.endAt.toISOString(),
-    canCancel:
-      booking.status === BookingStatus.ACTIVE && canParentCancelBooking(booking.slot),
-    cancelHint:
+  return bookings.map((booking) => {
+    const canCancel = booking.status === BookingStatus.ACTIVE && canParentCancelBooking(booking.slot);
+    const cancelHint =
       booking.status === BookingStatus.ACTIVE && !canParentCancelBooking(booking.slot)
-        ? "今日课程不可在线取消，请联系教练"
-        : null,
-  }));
+        ? APP_ERRORS.TODAY_PARENT_CANCEL_NOT_ALLOWED.message
+        : null;
+
+    return toParentBookingView(booking, canCancel, cancelHint);
+  });
 }
