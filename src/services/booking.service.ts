@@ -19,6 +19,11 @@ export type CancelBookingInput = {
   contactPhone: string;
 };
 
+export type CoachCancelBookingInput = {
+  bookingId: string;
+  reason?: string;
+};
+
 export async function createBooking(input: CreateBookingInput) {
   return prisma.$transaction(async (tx) => {
     const slot = await tx.slot.findUnique({
@@ -105,6 +110,9 @@ export async function createBooking(input: CreateBookingInput) {
         createdAt: true,
       },
     });
+  }, {
+    maxWait: 10000,
+    timeout: 20000,
   });
 }
 
@@ -150,6 +158,49 @@ export async function cancelBooking(input: CancelBookingInput) {
     await refreshSlotCourseState(tx, booking.slotId);
 
     return cancelled;
+  }, {
+    maxWait: 10000,
+    timeout: 20000,
+  });
+}
+
+export async function cancelCoachBooking(input: CoachCancelBookingInput) {
+  return prisma.$transaction(async (tx) => {
+    const booking = await tx.booking.findUnique({
+      where: { id: input.bookingId },
+      include: {
+        slot: true,
+      },
+    });
+
+    if (!booking) {
+      throw new BusinessError("Booking not found", 404);
+    }
+
+    if (booking.status !== BookingStatus.ACTIVE) {
+      throw new BusinessError("Booking is already cancelled");
+    }
+
+    const cancelled = await tx.booking.update({
+      where: { id: booking.id },
+      data: {
+        status: BookingStatus.CANCELLED,
+        cancelReason: input.reason?.trim() || "Coach cancelled",
+        cancelledAt: new Date(),
+      },
+      select: {
+        id: true,
+        status: true,
+        cancelledAt: true,
+      },
+    });
+
+    await refreshSlotCourseState(tx, booking.slotId);
+
+    return cancelled;
+  }, {
+    maxWait: 10000,
+    timeout: 20000,
   });
 }
 

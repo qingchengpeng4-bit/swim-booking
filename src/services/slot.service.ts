@@ -112,6 +112,43 @@ export async function getSlotDetail(slotId: string) {
   };
 }
 
+export async function getCoachSlotDetail(slotId: string) {
+  const slot = await prisma.slot.findUnique({
+    where: { id: slotId },
+    include: {
+      bookings: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        select: {
+          id: true,
+          studentName: true,
+          contactPhone: true,
+          courseType: true,
+          status: true,
+          remark: true,
+          createdAt: true,
+          cancelledAt: true,
+          cancelReason: true,
+        },
+      },
+    },
+  });
+
+  if (!slot) return null;
+
+  const activeCount = slot.bookings.filter((booking) => booking.status === BookingStatus.ACTIVE).length;
+
+  return {
+    ...getSlotPublicSummary(slot, activeCount),
+    bookings: slot.bookings.map((booking) => ({
+      ...booking,
+      createdAt: booking.createdAt.toISOString(),
+      cancelledAt: booking.cancelledAt?.toISOString() ?? null,
+    })),
+  };
+}
+
 export function getSlotPublicSummary(
   slot: {
     id: string;
