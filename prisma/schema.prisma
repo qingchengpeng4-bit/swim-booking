@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  PARENT
+  COACH
+  ADMIN
+}
+
+enum CoachStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum SlotStatus {
+  CLOSED
+  OPEN
+  CANCELLED
+}
+
+enum CourseType {
+  ONE_TO_ONE
+  ONE_TO_TWO
+  ONE_TO_THREE
+}
+
+enum BookingStatus {
+  ACTIVE
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  role         UserRole
+  name         String?
+  phone        String?
+  email        String?
+  passwordHash String?
+
+  coach        Coach?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([role])
+  @@index([phone])
+}
+
+model Coach {
+  id          String      @id @default(uuid())
+  userId      String      @unique
+  displayName String
+  phone       String?
+  status      CoachStatus @default(ACTIVE)
+
+  user        User        @relation(fields: [userId], references: [id])
+  slots       Slot[]
+  bookings    Booking[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Slot {
+  id          String      @id @default(uuid())
+  coachId     String
+  startAt     DateTime
+  endAt       DateTime
+  status      SlotStatus  @default(OPEN)
+  courseType  CourseType?
+  capacity    Int?
+
+  coach       Coach       @relation(fields: [coachId], references: [id])
+  bookings    Booking[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([coachId])
+  @@index([startAt])
+  @@index([status])
+  @@index([courseType])
+}
+
+model Booking {
+  id           String        @id @default(uuid())
+  slotId       String
+  coachId      String
+  studentName  String
+  contactPhone String
+  courseType   CourseType
+  status       BookingStatus @default(ACTIVE)
+  remark       String?
+  cancelReason String?
+  cancelledAt  DateTime?
+
+  slot         Slot          @relation(fields: [slotId], references: [id])
+  coach        Coach         @relation(fields: [coachId], references: [id])
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([slotId])
+  @@index([coachId])
+  @@index([contactPhone])
+  @@index([status])
+  @@index([courseType])
+}
