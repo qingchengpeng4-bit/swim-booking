@@ -15,7 +15,6 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@next/swc-win32-x64-msvc": "^15.5.19",
     "@prisma/client": "^6.10.1",
     "next": "^15.5.19",
     "react": "^19.1.0",
@@ -23,7 +22,6 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
-    "@next/swc-wasm-nodejs": "^15.5.19",
     "@tailwindcss/postcss": "^4.1.10",
     "@types/node": "^22.15.34",
     "@types/react": "^19.1.8",
