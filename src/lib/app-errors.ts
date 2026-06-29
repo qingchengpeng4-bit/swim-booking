@@ -14,6 +14,11 @@ export const APP_ERRORS = {
     message: "该时间段已满员，不能继续预约",
     status: 400,
   },
+  SLOT_JUST_FILLED: {
+    code: "SLOT_JUST_FILLED",
+    message: "该时间段刚刚被其他人约满，请选择其他时间。",
+    status: 409,
+  },
   COURSE_TYPE_MISMATCH: {
     code: "COURSE_TYPE_MISMATCH",
     message: "该时间段已锁定其他课程类型，不能选择不同课型",
@@ -43,6 +48,11 @@ export const APP_ERRORS = {
     code: "BOOKING_ALREADY_CANCELLED",
     message: "该预约已取消，不能重复取消",
     status: 400,
+  },
+  BOOKING_CONFLICT_RETRY_LATER: {
+    code: "BOOKING_CONFLICT_RETRY_LATER",
+    message: "当前预约人数较多，请稍后重试。",
+    status: 409,
   },
   DUPLICATE_BOOKING: {
     code: "DUPLICATE_BOOKING",

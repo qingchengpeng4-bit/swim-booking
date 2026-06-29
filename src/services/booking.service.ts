@@ -1,4 +1,4 @@
-import { BookingStatus, SlotStatus, type CourseType } from "@prisma/client";
+import { BookingStatus, Prisma, SlotStatus, type CourseType } from "@prisma/client";
 import { canParentCancelBooking } from "@/lib/slot-status";
 import { prisma } from "@/lib/db";
 import { BusinessError } from "@/services/errors";
@@ -7,6 +7,7 @@ import { isTodayInShanghai } from "@/lib/dates";
 import { APP_ERRORS } from "@/lib/app-errors";
 import { canCancelActiveBooking, canJoinSlot } from "@/lib/booking-rules";
 import { toParentBookingView } from "@/lib/privacy-rules";
+import { isRetryableTransactionError } from "@/lib/prisma-errors";
 
 export type CreateBookingInput = {
   slotId: string;
@@ -26,7 +27,9 @@ export type CoachCancelBookingInput = {
   reason?: string;
 };
 
-export async function createParentBooking(input: CreateBookingInput) {
+const CREATE_BOOKING_MAX_RETRIES = 2;
+
+async function createParentBookingOnce(input: CreateBookingInput) {
   return prisma.$transaction(async (tx) => {
     const slot = await tx.slot.findUnique({
       where: { id: input.slotId },
@@ -110,9 +113,32 @@ export async function createParentBooking(input: CreateBookingInput) {
       },
     });
   }, {
+    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     maxWait: 10000,
     timeout: 20000,
   });
+}
+
+export async function createParentBooking(input: CreateBookingInput) {
+  let retryCount = 0;
+
+  while (retryCount <= CREATE_BOOKING_MAX_RETRIES) {
+    try {
+      return await createParentBookingOnce(input);
+    } catch (error) {
+      if (error instanceof BusinessError && error.code === APP_ERRORS.SLOT_ALREADY_FULL.code && retryCount > 0) {
+        throw new BusinessError(APP_ERRORS.SLOT_JUST_FILLED);
+      }
+
+      if (!isRetryableTransactionError(error)) {
+        throw error;
+      }
+
+      retryCount += 1;
+    }
+  }
+
+  throw new BusinessError(APP_ERRORS.BOOKING_CONFLICT_RETRY_LATER);
 }
 
 export async function cancelParentBooking(input: CancelBookingInput) {
