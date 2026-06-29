@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { BookingForm } from "@/components/parent/BookingForm";
 import { PageHeader } from "@/components/common/PageHeader";
-import { getSlotDetail } from "@/services/slot.service";
+import { getParentSlotDetail } from "@/services/slot.service";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ type BookPageProps = {
 
 export default async function BookPage({ params }: BookPageProps) {
   const { slotId } = await params;
-  const slot = await getSlotDetail(slotId);
+  const slot = await getParentSlotDetail(slotId);
 
   if (!slot) {
     notFound();

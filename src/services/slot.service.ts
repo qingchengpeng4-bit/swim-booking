@@ -78,7 +78,7 @@ export async function getOpenSlots() {
   return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
 }
 
-export async function getSlotDetail(slotId: string) {
+export async function getParentSlotDetail(slotId: string) {
   const slot = await prisma.slot.findUnique({
     where: { id: slotId },
     include: {

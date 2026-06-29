@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatusBadge } from "@/components/common/StatusBadge";
-import { getSlotDetail } from "@/services/slot.service";
+import { getParentSlotDetail } from "@/services/slot.service";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ type SlotDetailPageProps = {
 
 export default async function SlotDetailPage({ params }: SlotDetailPageProps) {
   const { slotId } = await params;
-  const slot = await getSlotDetail(slotId);
+  const slot = await getParentSlotDetail(slotId);
 
   if (!slot) {
     notFound();

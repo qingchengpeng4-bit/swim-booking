@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { BookingStatus, CourseType, SlotStatus, UserRole } from "@prisma/client";
 import { prisma } from "../lib/db";
-import { createBooking, cancelBooking, cancelCoachBooking } from "../services/booking.service";
-import { getCoachSlotDetail, getOpenSlots, getSlotDetail } from "../services/slot.service";
+import { createParentBooking, cancelParentBooking, cancelCoachBooking } from "../services/booking.service";
+import { getCoachSlotDetail, getOpenSlots, getParentSlotDetail } from "../services/slot.service";
 
 const testRunId = `phase1-${Date.now()}`;
 const testPhonePrefix = "199";
@@ -132,7 +132,7 @@ describe.sequential("booking service core rules", () => {
   it("books an empty 1v1 slot and immediately makes it full", async () => {
     const slot = await createFutureSlot();
 
-    await createBooking({
+    await createParentBooking({
       slotId: slot.id,
       studentName: "Phase One",
       contactPhone: phone(1),
@@ -145,7 +145,7 @@ describe.sequential("booking service core rules", () => {
     expect(await activeCount(slot.id)).toBe(1);
 
     await expect(
-      createBooking({
+      createParentBooking({
         slotId: slot.id,
         studentName: "Phase Extra",
         contactPhone: phone(2),
@@ -157,7 +157,7 @@ describe.sequential("booking service core rules", () => {
   it("books 1v2 up to 2/2 and rejects the third parent", async () => {
     const slot = await createFutureSlot();
 
-    await createBooking({
+    await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Two A",
       contactPhone: phone(3),
@@ -166,7 +166,7 @@ describe.sequential("booking service core rules", () => {
     expect(await activeCount(slot.id)).toBe(1);
     expect((await getSlot(slot.id)).capacity).toBe(2);
 
-    await createBooking({
+    await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Two B",
       contactPhone: phone(4),
@@ -175,7 +175,7 @@ describe.sequential("booking service core rules", () => {
     expect(await activeCount(slot.id)).toBe(2);
 
     await expect(
-      createBooking({
+      createParentBooking({
         slotId: slot.id,
         studentName: "Phase Two C",
         contactPhone: phone(5),
@@ -188,7 +188,7 @@ describe.sequential("booking service core rules", () => {
     const slot = await createFutureSlot();
 
     for (const index of [6, 7, 8]) {
-      await createBooking({
+      await createParentBooking({
         slotId: slot.id,
         studentName: `Phase Three ${index}`,
         contactPhone: phone(index),
@@ -202,7 +202,7 @@ describe.sequential("booking service core rules", () => {
     expect(updated.capacity).toBe(3);
 
     await expect(
-      createBooking({
+      createParentBooking({
         slotId: slot.id,
         studentName: "Phase Three D",
         contactPhone: phone(9),
@@ -214,7 +214,7 @@ describe.sequential("booking service core rules", () => {
   it("locks 1v2 slots against 1v1 and 1v3", async () => {
     const slot = await createFutureSlot();
 
-    await createBooking({
+    await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Lock 2",
       contactPhone: phone(10),
@@ -222,7 +222,7 @@ describe.sequential("booking service core rules", () => {
     });
 
     await expect(
-      createBooking({
+      createParentBooking({
         slotId: slot.id,
         studentName: "Phase Lock 1",
         contactPhone: phone(11),
@@ -231,7 +231,7 @@ describe.sequential("booking service core rules", () => {
     ).rejects.toThrow();
 
     await expect(
-      createBooking({
+      createParentBooking({
         slotId: slot.id,
         studentName: "Phase Lock 3",
         contactPhone: phone(12),
@@ -243,7 +243,7 @@ describe.sequential("booking service core rules", () => {
   it("locks 1v3 slots against 1v1 and 1v2", async () => {
     const slot = await createFutureSlot();
 
-    await createBooking({
+    await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Lock 3",
       contactPhone: phone(13),
@@ -251,7 +251,7 @@ describe.sequential("booking service core rules", () => {
     });
 
     await expect(
-      createBooking({
+      createParentBooking({
         slotId: slot.id,
         studentName: "Phase Lock 1",
         contactPhone: phone(14),
@@ -260,7 +260,7 @@ describe.sequential("booking service core rules", () => {
     ).rejects.toThrow();
 
     await expect(
-      createBooking({
+      createParentBooking({
         slotId: slot.id,
         studentName: "Phase Lock 2",
         contactPhone: phone(15),
@@ -271,14 +271,14 @@ describe.sequential("booking service core rules", () => {
 
   it("cancels a future parent booking, keeps the record, and releases capacity", async () => {
     const slot = await createFutureSlot();
-    const booking = await createBooking({
+    const booking = await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Cancel",
       contactPhone: phone(16),
       courseType: CourseType.ONE_TO_ONE,
     });
 
-    await cancelBooking({
+    await cancelParentBooking({
       bookingId: booking.id,
       contactPhone: phone(16),
     });
@@ -305,7 +305,7 @@ describe.sequential("booking service core rules", () => {
     });
 
     await expect(
-      cancelBooking({
+      cancelParentBooking({
         bookingId: booking.id,
         contactPhone: phone(17),
       }),
@@ -322,26 +322,26 @@ describe.sequential("booking service core rules", () => {
 
   it("keeps course type when one active booking remains and resets it after all cancel", async () => {
     const slot = await createFutureSlot();
-    const first = await createBooking({
+    const first = await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Keep A",
       contactPhone: phone(18),
       courseType: CourseType.ONE_TO_TWO,
     });
-    const second = await createBooking({
+    const second = await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Keep B",
       contactPhone: phone(19),
       courseType: CourseType.ONE_TO_TWO,
     });
 
-    await cancelBooking({ bookingId: first.id, contactPhone: phone(18) });
+    await cancelParentBooking({ bookingId: first.id, contactPhone: phone(18) });
     let updated = await getSlot(slot.id);
     expect(updated.courseType).toBe(CourseType.ONE_TO_TWO);
     expect(updated.capacity).toBe(2);
     expect(await activeCount(slot.id)).toBe(1);
 
-    await cancelBooking({ bookingId: second.id, contactPhone: phone(19) });
+    await cancelParentBooking({ bookingId: second.id, contactPhone: phone(19) });
     updated = await getSlot(slot.id);
     expect(updated.courseType).toBeNull();
     expect(updated.capacity).toBeNull();
@@ -350,14 +350,14 @@ describe.sequential("booking service core rules", () => {
 
   it("returns group student names to parents without leaking contact phone, remark, or booking time", async () => {
     const slot = await createFutureSlot();
-    await createBooking({
+    await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Privacy A",
       contactPhone: phone(20),
       courseType: CourseType.ONE_TO_TWO,
       remark: "Private remark A",
     });
-    await createBooking({
+    await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Privacy B",
       contactPhone: phone(21),
@@ -365,7 +365,7 @@ describe.sequential("booking service core rules", () => {
       remark: "Private remark B",
     });
 
-    const parentDetail = await getSlotDetail(slot.id);
+    const parentDetail = await getParentSlotDetail(slot.id);
     const serialized = JSON.stringify(parentDetail);
 
     expect(parentDetail?.registeredStudentNames).toEqual(["Phase Privacy A", "Phase Privacy B"]);
@@ -377,7 +377,7 @@ describe.sequential("booking service core rules", () => {
 
   it("returns complete booking information to coach service", async () => {
     const slot = await createFutureSlot();
-    await createBooking({
+    await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Coach View",
       contactPhone: phone(22),
@@ -400,34 +400,35 @@ describe.sequential("booking service core rules", () => {
 
   it("stays stable after repeated booking, cancellation, and slot list refreshes", async () => {
     const slot = await createFutureSlot();
-    const first = await createBooking({
+    const first = await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Stable A",
       contactPhone: phone(23),
       courseType: CourseType.ONE_TO_THREE,
     });
-    const second = await createBooking({
+    const second = await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Stable B",
       contactPhone: phone(24),
       courseType: CourseType.ONE_TO_THREE,
     });
 
-    await cancelBooking({ bookingId: first.id, contactPhone: phone(23) });
-    await createBooking({
+    await cancelParentBooking({ bookingId: first.id, contactPhone: phone(23) });
+    await createParentBooking({
       slotId: slot.id,
       studentName: "Phase Stable C",
       contactPhone: phone(25),
       courseType: CourseType.ONE_TO_THREE,
     });
-    await cancelBooking({ bookingId: second.id, contactPhone: phone(24) });
+    await cancelParentBooking({ bookingId: second.id, contactPhone: phone(24) });
 
-    await expect(getSlotDetail(slot.id)).resolves.toBeTruthy();
+    await expect(getParentSlotDetail(slot.id)).resolves.toBeTruthy();
     await expect(getOpenSlots()).resolves.toEqual(expect.any(Array));
 
-    const detail = await getSlotDetail(slot.id);
+    const detail = await getParentSlotDetail(slot.id);
     expect(detail?.activeCount).toBe(1);
     expect(detail?.courseType).toBe(CourseType.ONE_TO_THREE);
     expect(detail?.capacity).toBe(3);
   });
 });
+

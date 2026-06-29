@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { BusinessError } from "@/services/errors";
 import { refreshSlotCourseState } from "@/services/slot.service";
 import { isTodayInShanghai } from "@/lib/dates";
+import { APP_ERRORS } from "@/lib/app-errors";
 
 export type CreateBookingInput = {
   slotId: string;
@@ -24,22 +25,22 @@ export type CoachCancelBookingInput = {
   reason?: string;
 };
 
-export async function createBooking(input: CreateBookingInput) {
+export async function createParentBooking(input: CreateBookingInput) {
   return prisma.$transaction(async (tx) => {
     const slot = await tx.slot.findUnique({
       where: { id: input.slotId },
     });
 
     if (!slot) {
-      throw new BusinessError("时间段不存在", 404);
+      throw new BusinessError(APP_ERRORS.SLOT_NOT_FOUND);
     }
 
     if (slot.status !== SlotStatus.OPEN) {
-      throw new BusinessError("该时间段暂不可预约");
+      throw new BusinessError(APP_ERRORS.SLOT_CLOSED);
     }
 
     if (isTodayInShanghai(slot.startAt)) {
-      throw new BusinessError("今日课程不可在线预约，请联系教练");
+      throw new BusinessError(APP_ERRORS.TODAY_BOOKING_NOT_ALLOWED);
     }
 
     const duplicate = await tx.booking.findFirst({
@@ -51,7 +52,7 @@ export async function createBooking(input: CreateBookingInput) {
     });
 
     if (duplicate) {
-      throw new BusinessError("该手机号已预约此时间段，不能重复预约");
+      throw new BusinessError(APP_ERRORS.DUPLICATE_BOOKING);
     }
 
     const activeBookings = await tx.booking.findMany({
@@ -71,14 +72,14 @@ export async function createBooking(input: CreateBookingInput) {
     const lockedCourseType = slot.courseType ?? activeBookings[0]?.courseType ?? null;
 
     if (lockedCourseType && lockedCourseType !== input.courseType) {
-      throw new BusinessError("该时间段已锁定其他课程类型，不能选择不同课型");
+      throw new BusinessError(APP_ERRORS.COURSE_TYPE_MISMATCH);
     }
 
     const courseTypeToUse = lockedCourseType ?? input.courseType;
     const capacity = slot.capacity ?? getCourseCapacity(courseTypeToUse);
 
     if (activeCount >= capacity) {
-      throw new BusinessError("该时间段已满员，不能继续预约");
+      throw new BusinessError(APP_ERRORS.SLOT_ALREADY_FULL);
     }
 
     if (!slot.courseType || slot.capacity === null) {
@@ -116,7 +117,7 @@ export async function createBooking(input: CreateBookingInput) {
   });
 }
 
-export async function cancelBooking(input: CancelBookingInput) {
+export async function cancelParentBooking(input: CancelBookingInput) {
   return prisma.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({
       where: { id: input.bookingId },
@@ -126,19 +127,19 @@ export async function cancelBooking(input: CancelBookingInput) {
     });
 
     if (!booking) {
-      throw new BusinessError("预约不存在", 404);
+      throw new BusinessError(APP_ERRORS.BOOKING_NOT_FOUND);
     }
 
     if (booking.contactPhone !== input.contactPhone) {
-      throw new BusinessError("手机号不匹配，不能取消该预约", 403);
+      throw new BusinessError(APP_ERRORS.BOOKING_PHONE_MISMATCH);
     }
 
     if (booking.status !== BookingStatus.ACTIVE) {
-      throw new BusinessError("该预约已取消，不能重复取消");
+      throw new BusinessError(APP_ERRORS.BOOKING_ALREADY_CANCELLED);
     }
 
     if (!canParentCancelBooking(booking.slot)) {
-      throw new BusinessError("今日课程不可在线取消，请联系教练");
+      throw new BusinessError(APP_ERRORS.TODAY_PARENT_CANCEL_NOT_ALLOWED);
     }
 
     const cancelled = await tx.booking.update({
@@ -174,11 +175,11 @@ export async function cancelCoachBooking(input: CoachCancelBookingInput) {
     });
 
     if (!booking) {
-      throw new BusinessError("Booking not found", 404);
+      throw new BusinessError(APP_ERRORS.BOOKING_NOT_FOUND);
     }
 
     if (booking.status !== BookingStatus.ACTIVE) {
-      throw new BusinessError("Booking is already cancelled");
+      throw new BusinessError(APP_ERRORS.BOOKING_ALREADY_CANCELLED);
     }
 
     const cancelled = await tx.booking.update({

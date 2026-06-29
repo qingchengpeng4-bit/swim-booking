@@ -27,7 +27,7 @@ export function MyBookingsList({ initialBookings }: { initialBookings: BookingIt
   const contactPhone = params.get("contactPhone") ?? "";
   const [error, setError] = useState("");
 
-  async function cancelBooking(bookingId: string) {
+  async function cancelParentBooking(bookingId: string) {
     setError("");
     const response = await fetch("/api/parent/bookings/cancel", {
       method: "POST",
@@ -65,7 +65,7 @@ export function MyBookingsList({ initialBookings }: { initialBookings: BookingIt
               <div className="mt-1 text-sm text-gray-700">状态：{booking.status === "ACTIVE" ? "有效" : "已取消"}</div>
               {booking.cancelHint ? <p className="mt-2 text-sm text-amber-700">{booking.cancelHint}</p> : null}
               {booking.canCancel ? (
-                <button className="mt-3 rounded border border-red-300 px-3 py-2 text-sm text-red-700" onClick={() => cancelBooking(booking.id)} type="button">
+                <button className="mt-3 rounded border border-red-300 px-3 py-2 text-sm text-red-700" onClick={() => cancelParentBooking(booking.id)} type="button">
                   取消预约
                 </button>
               ) : null}
