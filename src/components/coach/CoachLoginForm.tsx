@@ -31,7 +31,7 @@ export function CoachLoginForm() {
       return;
     }
 
-    router.push("/coach/dashboard");
+    router.push("/coach/calendar");
     router.refresh();
   }
 

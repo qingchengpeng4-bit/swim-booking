@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function CoachPage() {
-  redirect("/coach/login");
+  redirect("/coach/calendar");
 }

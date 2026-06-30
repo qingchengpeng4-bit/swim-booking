@@ -29,6 +29,12 @@ export type CoachScheduleCell = {
 };
 
 export type CoachWeeklySchedule = {
+  weekRangeText: string;
+  days: Array<{
+    key: string;
+    weekday: string;
+    dateText: string;
+  }>;
   rows: Array<{
     timeLabel: string;
     cells: CoachScheduleCell[];
@@ -56,6 +62,14 @@ function getShanghaiHour(date: Date) {
   }).format(date);
 }
 
+function formatMonthDay(date: Date) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: SHANGHAI_TIME_ZONE,
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
+}
+
 function getStudentNames(slot: CoachScheduleSlotSummary) {
   return slot.bookings
     .filter((booking) => booking.status === BookingStatus.ACTIVE || booking.status === "ACTIVE")
@@ -63,7 +77,11 @@ function getStudentNames(slot: CoachScheduleSlotSummary) {
     .filter(Boolean);
 }
 
-function cellForSlot(slot: CoachScheduleSlotSummary): Omit<CoachScheduleCell, "key"> {
+function isSlotExpired(slot: CoachScheduleSlotSummary, now: Date) {
+  return slot.status === "EXPIRED" || new Date(slot.endAt).getTime() <= now.getTime();
+}
+
+function cellForSlot(slot: CoachScheduleSlotSummary, now: Date): Omit<CoachScheduleCell, "key"> {
   if (slot.status === "CLOSED" || slot.status === "CANCELLED") {
     return {
       slotId: slot.id,
@@ -74,20 +92,21 @@ function cellForSlot(slot: CoachScheduleSlotSummary): Omit<CoachScheduleCell, "k
     };
   }
 
-  if (slot.status === "EXPIRED") {
+  const activeNames = getStudentNames(slot);
+  const hasActiveBookings = activeNames.length > 0 || slot.activeCount > 0;
+  const expired = isSlotExpired(slot, now);
+
+  if (!hasActiveBookings && expired) {
     return {
       slotId: slot.id,
       title: "已过期",
       subtitle: "",
       tone: "gray",
-      href: `/coach/slots/${slot.id}`,
+      href: null,
     };
   }
 
-  const courseText = getCourseText(slot.courseType);
-  const activeNames = getStudentNames(slot);
-
-  if (!slot.courseType || slot.activeCount === 0) {
+  if (!slot.courseType || !hasActiveBookings) {
     return {
       slotId: slot.id,
       title: "空闲",
@@ -97,25 +116,31 @@ function cellForSlot(slot: CoachScheduleSlotSummary): Omit<CoachScheduleCell, "k
     };
   }
 
+  const courseText = getCourseText(slot.courseType);
+
   if (slot.courseType === CourseType.ONE_TO_ONE) {
     return {
       slotId: slot.id,
       title: courseText,
-      subtitle: activeNames[0] ?? "已预约",
-      tone: "red",
+      subtitle: `${activeNames[0] ?? "已预约"}${expired ? " · 已过期" : ""}`,
+      tone: expired ? "gray" : "red",
       href: `/coach/slots/${slot.id}`,
     };
   }
 
   const capacity = slot.capacity ?? slot.activeCount;
   const countText = `${courseText} ${slot.activeCount}/${capacity}`;
-  const isFull = slot.activeCount >= capacity;
+  const full = slot.activeCount >= capacity;
+  const namesText = activeNames.join(" / ");
 
   return {
     slotId: slot.id,
     title: countText,
-    subtitle: isFull && slot.courseType === CourseType.ONE_TO_THREE ? "已满" : activeNames.join(" / "),
-    tone: isFull ? "red" : "green",
+    subtitle:
+      full && slot.courseType === CourseType.ONE_TO_THREE
+        ? `已满${expired ? " · 已过期" : ""}`
+        : `${namesText}${expired ? " · 已过期" : ""}`,
+    tone: expired ? "gray" : full ? "red" : "green",
     href: `/coach/slots/${slot.id}`,
   };
 }
@@ -123,9 +148,13 @@ function cellForSlot(slot: CoachScheduleSlotSummary): Omit<CoachScheduleCell, "k
 export function buildCoachWeeklySchedule({
   slots,
   weekStart,
+  weekEnd,
+  now = new Date(),
 }: {
   slots: CoachScheduleSlotSummary[];
   weekStart: Date;
+  weekEnd: Date;
+  now?: Date;
 }): CoachWeeklySchedule {
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
   const slotMap = new Map<string, CoachScheduleSlotSummary>();
@@ -135,7 +164,15 @@ export function buildCoachWeeklySchedule({
     slotMap.set(`${getDateKey(startAt)}-${getShanghaiHour(startAt)}`, slot);
   }
 
+  const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+
   return {
+    weekRangeText: `${formatMonthDay(weekStart)} - ${formatMonthDay(weekEnd)}`,
+    days: days.map((day, index) => ({
+      key: getDateKey(day),
+      weekday: weekdays[index],
+      dateText: formatMonthDay(day),
+    })),
     rows: SCHEDULE_HOURS.map((hour) => ({
       timeLabel: `${String(hour).padStart(2, "0")}:00`,
       cells: days.map((day) => {
@@ -155,7 +192,7 @@ export function buildCoachWeeklySchedule({
 
         return {
           key,
-          ...cellForSlot(slot),
+          ...cellForSlot(slot, now),
         };
       }),
     })),

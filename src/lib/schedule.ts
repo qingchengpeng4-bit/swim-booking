@@ -127,7 +127,7 @@ function getCourseText(courseType: CourseType | null) {
   return "";
 }
 
-export function getScheduleWeek(week?: string, now = new Date()) {
+export function getScheduleWeek(week?: string, now = new Date(), basePath = "/parent") {
   const currentWeekStart = getMonday(now);
   const maxWeekStart = getMonday(makeShanghaiDate(parseDateKey(BOOKING_END_DATE) ?? getShanghaiParts(now)));
   const requestedParts = week ? parseDateKey(week) : null;
@@ -148,11 +148,11 @@ export function getScheduleWeek(week?: string, now = new Date()) {
     queryEnd,
     previousWeekHref:
       previousStart.getTime() >= currentWeekStart.getTime()
-        ? `/parent?week=${getDateKey(previousStart)}`
+        ? `${basePath}?week=${getDateKey(previousStart)}`
         : null,
     nextWeekHref:
       nextStart.getTime() <= maxWeekStart.getTime()
-        ? `/parent?week=${getDateKey(nextStart)}`
+        ? `${basePath}?week=${getDateKey(nextStart)}`
         : null,
   };
 }
