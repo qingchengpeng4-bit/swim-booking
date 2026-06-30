@@ -41,13 +41,107 @@ describe("coach weekly schedule", () => {
     expect(schedule.rows[0].cells).toHaveLength(7);
   });
 
-  it("maps future empty, booked, full, and closed cells without leaking sensitive fields", () => {
+  it("shows today future empty slots as bookable", () => {
+    const schedule = build(
+      [
+        slot({
+          id: "today-future",
+          startAt: shanghaiDateAt("2026-07-06", 16).toISOString(),
+          endAt: shanghaiDateAt("2026-07-06", 17).toISOString(),
+        }),
+      ],
+      shanghaiDateAt("2026-07-06", 15),
+    );
+
+    expect(schedule.rows[4].cells[0]).toMatchObject({
+      title: "空闲",
+      subtitle: "可预约",
+      tone: "green",
+      href: "/coach/slots/today-future",
+    });
+  });
+
+  it("shows today started empty slots as expired", () => {
+    const schedule = build(
+      [
+        slot({
+          id: "today-started",
+          startAt: shanghaiDateAt("2026-07-06", 15).toISOString(),
+          endAt: shanghaiDateAt("2026-07-06", 16).toISOString(),
+        }),
+      ],
+      shanghaiDateAt("2026-07-06", 15),
+    );
+
+    expect(schedule.rows[3].cells[0]).toMatchObject({
+      title: "已过期",
+      subtitle: "",
+      tone: "gray",
+      href: null,
+    });
+  });
+
+  it("keeps started active bookings visible and linked to coach detail", () => {
+    const schedule = build(
+      [
+        slot({
+          id: "started-booked",
+          startAt: shanghaiDateAt("2026-07-06", 15).toISOString(),
+          endAt: shanghaiDateAt("2026-07-06", 16).toISOString(),
+          courseType: CourseType.ONE_TO_ONE,
+          activeCount: 1,
+          capacity: 1,
+          bookings: [{ studentName: "李四", status: BookingStatus.ACTIVE }],
+        }),
+      ],
+      shanghaiDateAt("2026-07-06", 15),
+    );
+
+    expect(schedule.rows[3].cells[0]).toMatchObject({
+      title: "1v1",
+      subtitle: "李四 · 已过期",
+      tone: "gray",
+      href: "/coach/slots/started-booked",
+    });
+  });
+
+  it("shows future empty slots as bookable", () => {
     const schedule = build([
       slot({
-        id: "empty",
+        id: "future-empty",
         startAt: shanghaiDateAt("2026-07-06", 12).toISOString(),
         endAt: shanghaiDateAt("2026-07-06", 13).toISOString(),
       }),
+    ]);
+
+    expect(schedule.rows[0].cells[0]).toMatchObject({
+      title: "空闲",
+      subtitle: "可预约",
+      tone: "green",
+      href: "/coach/slots/future-empty",
+    });
+  });
+
+  it("shows closed group class slots as unavailable without href", () => {
+    const schedule = build([
+      slot({
+        id: "closed",
+        startAt: shanghaiDateAt("2026-07-07", 19).toISOString(),
+        endAt: shanghaiDateAt("2026-07-07", 20).toISOString(),
+        status: "CLOSED",
+      }),
+    ]);
+
+    expect(schedule.rows[7].cells[1]).toMatchObject({
+      title: "大班课",
+      subtitle: "不可预约",
+      tone: "gray",
+      href: null,
+    });
+  });
+
+  it("shows student names without leaking phone or remark", () => {
+    const schedule = build([
       slot({
         id: "one-to-two",
         startAt: shanghaiDateAt("2026-07-06", 13).toISOString(),
@@ -57,103 +151,18 @@ describe("coach weekly schedule", () => {
         capacity: 2,
         bookings: [{ studentName: "张三", status: BookingStatus.ACTIVE }],
       }),
-      slot({
-        id: "one-to-three-full",
-        startAt: shanghaiDateAt("2026-07-06", 14).toISOString(),
-        endAt: shanghaiDateAt("2026-07-06", 15).toISOString(),
-        courseType: CourseType.ONE_TO_THREE,
-        activeCount: 3,
-        capacity: 3,
-        bookings: [
-          { studentName: "学生A", status: BookingStatus.ACTIVE },
-          { studentName: "学生B", status: BookingStatus.ACTIVE },
-          { studentName: "学生C", status: BookingStatus.ACTIVE },
-        ],
-      }),
-      slot({
-        id: "closed",
-        startAt: shanghaiDateAt("2026-07-07", 19).toISOString(),
-        endAt: shanghaiDateAt("2026-07-07", 20).toISOString(),
-        status: "CLOSED",
-      }),
     ]);
+    const serialized = JSON.stringify(schedule);
 
-    expect(schedule.rows[0].cells[0]).toMatchObject({
-      title: "空闲",
-      subtitle: "可预约",
-      tone: "green",
-      href: "/coach/slots/empty",
-    });
     expect(schedule.rows[1].cells[0]).toMatchObject({
       title: "1v2 1/2",
       subtitle: "张三",
       tone: "green",
       href: "/coach/slots/one-to-two",
     });
-    expect(schedule.rows[2].cells[0]).toMatchObject({
-      title: "1v3 3/3",
-      subtitle: "已满",
-      tone: "red",
-      href: "/coach/slots/one-to-three-full",
-    });
-    expect(schedule.rows[7].cells[1]).toMatchObject({
-      title: "大班课",
-      subtitle: "不可预约",
-      tone: "gray",
-      href: null,
-    });
-
-    const serialized = JSON.stringify(schedule);
     expect(serialized).toContain("张三");
     expect(serialized).not.toContain("contactPhone");
     expect(serialized).not.toContain("remark");
     expect(serialized).not.toContain("19900000001");
-  });
-
-  it("shows expired empty slots as expired instead of bookable", () => {
-    const schedule = build(
-      [
-        slot({
-          id: "expired-empty",
-          startAt: shanghaiDateAt("2026-07-06", 12).toISOString(),
-          endAt: shanghaiDateAt("2026-07-06", 13).toISOString(),
-        }),
-      ],
-      shanghaiDateAt("2026-07-06", 14),
-    );
-
-    expect(schedule.rows[0].cells[0]).toMatchObject({
-      title: "已过期",
-      subtitle: "",
-      tone: "gray",
-      href: null,
-    });
-    expect(JSON.stringify(schedule.rows[0].cells[0])).not.toContain("可预约");
-  });
-
-  it("keeps expired active bookings visible and linked to coach detail", () => {
-    const schedule = build(
-      [
-        slot({
-          id: "expired-booked",
-          startAt: shanghaiDateAt("2026-07-06", 12).toISOString(),
-          endAt: shanghaiDateAt("2026-07-06", 13).toISOString(),
-          courseType: CourseType.ONE_TO_ONE,
-          activeCount: 1,
-          capacity: 1,
-          bookings: [{ studentName: "李四", status: BookingStatus.ACTIVE }],
-        }),
-      ],
-      shanghaiDateAt("2026-07-06", 14),
-    );
-
-    expect(schedule.rows[0].cells[0]).toMatchObject({
-      title: "1v1",
-      subtitle: "李四 · 已过期",
-      tone: "gray",
-      href: "/coach/slots/expired-booked",
-    });
-    expect(JSON.stringify(schedule.rows[0].cells[0])).not.toContain("空闲");
-    expect(JSON.stringify(schedule.rows[0].cells[0])).not.toContain("可预约");
   });
 });

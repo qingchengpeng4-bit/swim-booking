@@ -1,5 +1,6 @@
 import { BookingStatus, CourseType } from "@prisma/client";
 import { getDateKey, SCHEDULE_HOURS } from "@/lib/schedule";
+import { isSlotStarted } from "@/lib/slot-time-rules";
 
 const SHANGHAI_TIME_ZONE = "Asia/Shanghai";
 
@@ -77,10 +78,6 @@ function getStudentNames(slot: CoachScheduleSlotSummary) {
     .filter(Boolean);
 }
 
-function isSlotExpired(slot: CoachScheduleSlotSummary, now: Date) {
-  return slot.status === "EXPIRED" || new Date(slot.endAt).getTime() <= now.getTime();
-}
-
 function cellForSlot(slot: CoachScheduleSlotSummary, now: Date): Omit<CoachScheduleCell, "key"> {
   if (slot.status === "CLOSED" || slot.status === "CANCELLED") {
     return {
@@ -94,9 +91,9 @@ function cellForSlot(slot: CoachScheduleSlotSummary, now: Date): Omit<CoachSched
 
   const activeNames = getStudentNames(slot);
   const hasActiveBookings = activeNames.length > 0 || slot.activeCount > 0;
-  const expired = isSlotExpired(slot, now);
+  const started = isSlotStarted({ startAt: new Date(slot.startAt) }, now) || slot.status === "EXPIRED";
 
-  if (!hasActiveBookings && expired) {
+  if (!hasActiveBookings && started) {
     return {
       slotId: slot.id,
       title: "已过期",
@@ -122,8 +119,8 @@ function cellForSlot(slot: CoachScheduleSlotSummary, now: Date): Omit<CoachSched
     return {
       slotId: slot.id,
       title: courseText,
-      subtitle: `${activeNames[0] ?? "已预约"}${expired ? " · 已过期" : ""}`,
-      tone: expired ? "gray" : "red",
+      subtitle: `${activeNames[0] ?? "已预约"}${started ? " · 已过期" : ""}`,
+      tone: started ? "gray" : "red",
       href: `/coach/slots/${slot.id}`,
     };
   }
@@ -138,9 +135,9 @@ function cellForSlot(slot: CoachScheduleSlotSummary, now: Date): Omit<CoachSched
     title: countText,
     subtitle:
       full && slot.courseType === CourseType.ONE_TO_THREE
-        ? `已满${expired ? " · 已过期" : ""}`
-        : `${namesText}${expired ? " · 已过期" : ""}`,
-    tone: expired ? "gray" : full ? "red" : "green",
+        ? `已满${started ? " · 已过期" : ""}`
+        : `${namesText}${started ? " · 已过期" : ""}`,
+    tone: started ? "gray" : full ? "red" : "green",
     href: `/coach/slots/${slot.id}`,
   };
 }
