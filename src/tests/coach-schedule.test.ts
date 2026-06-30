@@ -1,6 +1,7 @@
 import { BookingStatus, CourseType } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import { buildCoachWeeklySchedule, type CoachScheduleSlotSummary } from "@/lib/coach-schedule";
+import { SCHEDULE_HOURS } from "@/lib/schedule";
 
 function shanghaiDateAt(dateOnly: string, hour: number) {
   const [year, month, day] = dateOnly.split("-").map(Number);
@@ -35,10 +36,32 @@ describe("coach weekly schedule", () => {
     const schedule = build([]);
 
     expect(schedule.rows).toHaveLength(9);
+    expect(schedule.rows.map((row) => row.timeLabel)).toEqual(SCHEDULE_HOURS.map((hour) => `${hour}:00`));
     expect(schedule.rows[0].timeLabel).toBe("12:00");
     expect(schedule.rows[8].timeLabel).toBe("20:00");
     expect(schedule.rows.some((row) => row.timeLabel === "21:00")).toBe(false);
     expect(schedule.rows[0].cells).toHaveLength(7);
+  });
+
+  it("ignores slots outside business hours instead of rendering extra rows", () => {
+    const schedule = build([
+      slot({
+        id: "off-hour",
+        startAt: shanghaiDateAt("2026-07-06", 10).toISOString(),
+        endAt: shanghaiDateAt("2026-07-06", 11).toISOString(),
+        courseType: CourseType.ONE_TO_ONE,
+        activeCount: 1,
+        capacity: 1,
+        bookings: [{ studentName: "营业外学员", status: BookingStatus.ACTIVE }],
+      }),
+    ]);
+    const serialized = JSON.stringify(schedule);
+
+    expect(schedule.rows).toHaveLength(9);
+    expect(schedule.rows.map((row) => row.timeLabel)).toEqual(SCHEDULE_HOURS.map((hour) => `${hour}:00`));
+    expect(schedule.rows.some((row) => row.timeLabel === "10:00")).toBe(false);
+    expect(serialized).not.toContain("off-hour");
+    expect(serialized).not.toContain("营业外学员");
   });
 
   it("shows today future empty slots as bookable", () => {

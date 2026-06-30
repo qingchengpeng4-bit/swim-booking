@@ -1,4 +1,5 @@
 import { CourseType } from "@prisma/client";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildWeeklySchedule, getScheduleWeek } from "@/lib/schedule";
 
@@ -145,5 +146,15 @@ describe("weekly schedule", () => {
       tone: "green",
       href: "/parent/slots/today-joinable",
     });
+  });
+
+  it("keeps parent schedule helper copy readable without placeholder question marks", () => {
+    const source = readFileSync("src/components/parent/ParentSchedulePage.tsx", "utf8");
+
+    expect(source).toContain("已开始或已过去的课程不可预约。");
+    expect(source).toContain("当天课程不可在线取消，请联系教练。");
+    expect(source).toContain("多人课会显示已报名学员姓名");
+    expect(source).not.toContain("今日不可约");
+    expect(source).not.toMatch(/\?{3,}/);
   });
 });
