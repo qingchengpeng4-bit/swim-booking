@@ -1,28 +1,16 @@
-import { PrismaClient, SlotStatus, UserRole } from "@prisma/client";
+import { BookingStatus, PrismaClient, SlotStatus, UserRole } from "@prisma/client";
+import { buildSlotSeedPlan } from "@/lib/slot-seed-plan";
 
 const prisma = new PrismaClient();
 
-function shanghaiDateAt(dayOffset: number, hour: number, minute = 0) {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
+async function getOrCreateDefaultCoach() {
+  const existingCoach = await prisma.coach.findFirst({
+    where: {
+      phone: "13800000000",
+    },
+  });
 
-  const year = Number(parts.find((part) => part.type === "year")?.value);
-  const month = Number(parts.find((part) => part.type === "month")?.value);
-  const day = Number(parts.find((part) => part.type === "day")?.value);
-
-  return new Date(Date.UTC(year, month - 1, day + dayOffset, hour - 8, minute, 0));
-}
-
-async function main() {
-  await prisma.booking.deleteMany();
-  await prisma.slot.deleteMany();
-  await prisma.coach.deleteMany();
-  await prisma.user.deleteMany();
+  if (existingCoach) return existingCoach;
 
   const coachUser = await prisma.user.create({
     data: {
@@ -32,45 +20,143 @@ async function main() {
     },
   });
 
-  const coach = await prisma.coach.create({
+  return prisma.coach.create({
     data: {
       userId: coachUser.id,
       displayName: "王教练",
       phone: "13800000000",
     },
   });
+}
 
-  const slots = [
-    [0, 10, 0],
-    [0, 15, 0],
-    [1, 9, 0],
-    [1, 10, 30],
-    [1, 15, 0],
-    [2, 9, 0],
-    [2, 10, 30],
-    [2, 15, 0],
-    [3, 9, 0],
-    [3, 10, 30],
-  ] as const;
+function formatDateTime(date: Date) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
 
-  for (const [dayOffset, hour, minute] of slots) {
-    const startAt = shanghaiDateAt(dayOffset, hour, minute);
-    const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
-    await prisma.slot.create({
-      data: {
+async function main() {
+  const coach = await getOrCreateDefaultCoach();
+  const plan = buildSlotSeedPlan();
+
+  const conflicts: Array<{
+    startAt: Date;
+    endAt: Date;
+    activeCount: number;
+  }> = [];
+
+  for (const item of plan) {
+    if (item.status !== SlotStatus.CLOSED) continue;
+
+    const existingSlot = await prisma.slot.findFirst({
+      where: {
         coachId: coach.id,
-        startAt,
-        endAt,
-        status: SlotStatus.OPEN,
+        startAt: item.startAt,
+        endAt: item.endAt,
+      },
+      select: {
+        id: true,
       },
     });
+
+    if (!existingSlot) continue;
+
+    const activeCount = await prisma.booking.count({
+      where: {
+        slotId: existingSlot.id,
+        status: BookingStatus.ACTIVE,
+      },
+    });
+
+    if (activeCount > 0) {
+      conflicts.push({
+        startAt: item.startAt,
+        endAt: item.endAt,
+        activeCount,
+      });
+    }
   }
+
+  if (conflicts.length > 0) {
+    console.error("Seed stopped: fixed group class slots conflict with active bookings.");
+    for (const conflict of conflicts) {
+      console.error(
+        `- ${formatDateTime(conflict.startAt)} - ${formatDateTime(conflict.endAt)} has ${conflict.activeCount} ACTIVE booking(s). Cannot close automatically.`,
+      );
+    }
+    throw new Error("Seed stopped because closing these slots would affect active bookings.");
+  }
+
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  for (const item of plan) {
+    const existingSlot = await prisma.slot.findFirst({
+      where: {
+        coachId: coach.id,
+        startAt: item.startAt,
+        endAt: item.endAt,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!existingSlot) {
+      await prisma.slot.create({
+        data: {
+          coachId: coach.id,
+          startAt: item.startAt,
+          endAt: item.endAt,
+          status: item.status,
+          courseType: null,
+          capacity: null,
+        },
+      });
+      created += 1;
+      continue;
+    }
+
+    const activeCount = await prisma.booking.count({
+      where: {
+        slotId: existingSlot.id,
+        status: BookingStatus.ACTIVE,
+      },
+    });
+
+    if (activeCount > 0) {
+      skipped += 1;
+      continue;
+    }
+
+    await prisma.slot.update({
+      where: {
+        id: existingSlot.id,
+      },
+      data: {
+        status: item.status,
+        courseType: null,
+        capacity: null,
+      },
+    });
+    updated += 1;
+  }
+
+  console.log(
+    `Seed completed. Created: ${created}. Updated: ${updated}. Skipped with active bookings: ${skipped}. Total planned slots: ${plan.length}.`,
+  );
 }
 
 main()
   .then(async () => {
     await prisma.$disconnect();
-    console.log("Seed completed.");
   })
   .catch(async (error) => {
     console.error(error);
