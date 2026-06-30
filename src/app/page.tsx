@@ -2,19 +2,26 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-semibold">游泳课预约系统 v0.1</h1>
-      <p className="mt-3 text-gray-600">
-        当前版本用于验证 1v1 / 1v2 / 1v3 预约、课型锁定、容量判断和取消规则。
-      </p>
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-4 py-10">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <p className="text-sm font-medium text-gray-500">公网测试版 v0.1.1</p>
+        <h1 className="mt-2 text-3xl font-semibold text-gray-950">游泳课预约系统</h1>
+        <p className="mt-3 text-gray-600">请选择你的身份进入对应页面。</p>
 
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <Link className="rounded bg-blue-600 px-4 py-3 text-center text-white" href="/parent/calendar">
-          查看可预约时间
-        </Link>
-        <Link className="rounded border border-gray-300 bg-white px-4 py-3 text-center" href="/parent/my-bookings">
-          我的预约
-        </Link>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <Link
+            className="rounded-lg border border-green-200 bg-green-50 px-4 py-4 text-center font-semibold text-green-900"
+            href="/parent"
+          >
+            家长预约课程
+          </Link>
+          <Link
+            className="rounded-lg border border-gray-300 bg-white px-4 py-4 text-center font-semibold text-gray-900"
+            href="/coach"
+          >
+            教练进入后台
+          </Link>
+        </div>
       </div>
     </main>
   );

@@ -7,12 +7,12 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, description }: PageHeaderProps) {
   return (
-    <header className="mb-6 border-b border-gray-200 pb-4">
-      <Link className="text-sm text-blue-600" href="/">
+    <header className="mb-5">
+      <Link className="text-sm font-medium text-gray-600 underline-offset-4 hover:underline" href="/">
         返回首页
       </Link>
-      <h1 className="mt-3 text-2xl font-semibold">{title}</h1>
-      {description ? <p className="mt-2 text-sm text-gray-600">{description}</p> : null}
+      <h1 className="mt-3 text-2xl font-semibold text-gray-950">{title}</h1>
+      {description ? <p className="mt-2 text-sm leading-6 text-gray-600">{description}</p> : null}
     </header>
   );
 }

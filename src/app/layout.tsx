@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "游泳课预约系统",
-  description: "游泳课预约系统 v0.1",
+  description: "游泳课预约系统 v0.1.1",
 };
 
 export default function RootLayout({

@@ -29,6 +29,10 @@ async function getOrCreateDefaultCoach() {
   });
 }
 
+function slotKey(startAt: Date, endAt: Date) {
+  return `${startAt.toISOString()}__${endAt.toISOString()}`;
+}
+
 function formatDateTime(date: Date) {
   return new Intl.DateTimeFormat("zh-CN", {
     timeZone: "Asia/Shanghai",
@@ -44,7 +48,41 @@ function formatDateTime(date: Date) {
 async function main() {
   const coach = await getOrCreateDefaultCoach();
   const plan = buildSlotSeedPlan();
+  const firstStart = plan[0]?.startAt;
+  const lastEnd = plan[plan.length - 1]?.endAt;
 
+  if (!firstStart || !lastEnd) {
+    console.log("Seed skipped. No planned slots.");
+    return;
+  }
+
+  const existingSlots = await prisma.slot.findMany({
+    where: {
+      coachId: coach.id,
+      startAt: {
+        gte: firstStart,
+      },
+      endAt: {
+        lte: lastEnd,
+      },
+    },
+    select: {
+      id: true,
+      startAt: true,
+      endAt: true,
+      status: true,
+      bookings: {
+        where: {
+          status: BookingStatus.ACTIVE,
+        },
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  const existingByKey = new Map(existingSlots.map((slot) => [slotKey(slot.startAt, slot.endAt), slot]));
   const conflicts: Array<{
     startAt: Date;
     endAt: Date;
@@ -53,26 +91,8 @@ async function main() {
 
   for (const item of plan) {
     if (item.status !== SlotStatus.CLOSED) continue;
-
-    const existingSlot = await prisma.slot.findFirst({
-      where: {
-        coachId: coach.id,
-        startAt: item.startAt,
-        endAt: item.endAt,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!existingSlot) continue;
-
-    const activeCount = await prisma.booking.count({
-      where: {
-        slotId: existingSlot.id,
-        status: BookingStatus.ACTIVE,
-      },
-    });
+    const existingSlot = existingByKey.get(slotKey(item.startAt, item.endAt));
+    const activeCount = existingSlot?.bookings.length ?? 0;
 
     if (activeCount > 0) {
       conflicts.push({
@@ -93,46 +113,37 @@ async function main() {
     throw new Error("Seed stopped because closing these slots would affect active bookings.");
   }
 
-  let created = 0;
-  let updated = 0;
-  let skipped = 0;
+  const missingSlots = plan.filter((item) => !existingByKey.has(slotKey(item.startAt, item.endAt)));
 
-  for (const item of plan) {
-    const existingSlot = await prisma.slot.findFirst({
-      where: {
+  if (missingSlots.length > 0) {
+    await prisma.slot.createMany({
+      data: missingSlots.map((item) => ({
         coachId: coach.id,
         startAt: item.startAt,
         endAt: item.endAt,
-      },
-      select: {
-        id: true,
-      },
+        status: item.status,
+        courseType: null,
+        capacity: null,
+      })),
     });
+  }
 
-    if (!existingSlot) {
-      await prisma.slot.create({
-        data: {
-          coachId: coach.id,
-          startAt: item.startAt,
-          endAt: item.endAt,
-          status: item.status,
-          courseType: null,
-          capacity: null,
-        },
-      });
-      created += 1;
+  let updated = 0;
+  let skippedExisting = 0;
+  let skippedWithActiveBookings = 0;
+
+  for (const item of plan) {
+    const existingSlot = existingByKey.get(slotKey(item.startAt, item.endAt));
+    if (!existingSlot) continue;
+
+    const activeCount = existingSlot.bookings.length;
+    if (activeCount > 0) {
+      skippedWithActiveBookings += 1;
       continue;
     }
 
-    const activeCount = await prisma.booking.count({
-      where: {
-        slotId: existingSlot.id,
-        status: BookingStatus.ACTIVE,
-      },
-    });
-
-    if (activeCount > 0) {
-      skipped += 1;
+    if (existingSlot.status === item.status) {
+      skippedExisting += 1;
       continue;
     }
 
@@ -142,15 +153,36 @@ async function main() {
       },
       data: {
         status: item.status,
-        courseType: null,
-        capacity: null,
+        courseType: item.status === SlotStatus.CLOSED ? null : undefined,
+        capacity: item.status === SlotStatus.CLOSED ? null : undefined,
       },
     });
     updated += 1;
   }
 
+  const closedCount = await prisma.slot.count({
+    where: {
+      coachId: coach.id,
+      status: SlotStatus.CLOSED,
+      startAt: {
+        gte: firstStart,
+      },
+      endAt: {
+        lte: lastEnd,
+      },
+    },
+  });
+
   console.log(
-    `Seed completed. Created: ${created}. Updated: ${updated}. Skipped with active bookings: ${skipped}. Total planned slots: ${plan.length}.`,
+    [
+      "Seed completed.",
+      `Created: ${missingSlots.length}.`,
+      `Updated: ${updated}.`,
+      `Skipped existing: ${skippedExisting}.`,
+      `Skipped with active bookings: ${skippedWithActiveBookings}.`,
+      `Closed group-class slots in range: ${closedCount}.`,
+      `Total planned slots: ${plan.length}.`,
+    ].join(" "),
   );
 }
 

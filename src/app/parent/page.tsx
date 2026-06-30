@@ -2,13 +2,13 @@ import { ParentSchedulePage } from "@/components/parent/ParentSchedulePage";
 
 export const dynamic = "force-dynamic";
 
-type CalendarPageProps = {
+type ParentPageProps = {
   searchParams: Promise<{
     week?: string;
   }>;
 };
 
-export default async function CalendarPage({ searchParams }: CalendarPageProps) {
+export default async function ParentPage({ searchParams }: ParentPageProps) {
   const { week } = await searchParams;
   return <ParentSchedulePage week={week} />;
 }

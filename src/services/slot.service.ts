@@ -68,6 +68,38 @@ export async function getOpenSlots() {
   return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
 }
 
+export async function getParentWeeklySlots(weekStart: Date, weekEnd: Date) {
+  const slots = await prisma.slot.findMany({
+    where: {
+      startAt: {
+        gte: weekStart,
+        lt: weekEnd,
+      },
+    },
+    orderBy: {
+      startAt: "asc",
+    },
+    select: {
+      id: true,
+      startAt: true,
+      endAt: true,
+      status: true,
+      courseType: true,
+      capacity: true,
+      bookings: {
+        where: {
+          status: BookingStatus.ACTIVE,
+        },
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
+}
+
 export async function getCoachSlots() {
   const slots = await prisma.slot.findMany({
     orderBy: {
