@@ -1,13 +1,12 @@
 import { BookingStatus, Prisma, SlotStatus, type CourseType } from "@prisma/client";
-import { canParentCancelBooking } from "@/lib/slot-status";
 import { prisma } from "@/lib/db";
 import { BusinessError } from "@/services/errors";
 import { refreshSlotCourseState } from "@/services/slot.service";
-import { isTodayInShanghai } from "@/lib/dates";
 import { APP_ERRORS } from "@/lib/app-errors";
 import { canCancelActiveBooking, canJoinSlot } from "@/lib/booking-rules";
 import { toParentBookingView } from "@/lib/privacy-rules";
 import { isRetryableTransactionError } from "@/lib/prisma-errors";
+import { canParentBookByTime, canParentCancelByTime } from "@/lib/slot-time-rules";
 
 export type CreateBookingInput = {
   slotId: string;
@@ -43,8 +42,8 @@ async function createParentBookingOnce(input: CreateBookingInput) {
       throw new BusinessError(APP_ERRORS.SLOT_CLOSED);
     }
 
-    if (isTodayInShanghai(slot.startAt)) {
-      throw new BusinessError(APP_ERRORS.TODAY_BOOKING_NOT_ALLOWED);
+    if (!canParentBookByTime(slot)) {
+      throw new BusinessError(APP_ERRORS.SLOT_ALREADY_STARTED);
     }
 
     const duplicate = await tx.booking.findFirst({
@@ -162,7 +161,7 @@ export async function cancelParentBooking(input: CancelBookingInput) {
       throw new BusinessError(APP_ERRORS.BOOKING_ALREADY_CANCELLED);
     }
 
-    if (!canParentCancelBooking(booking.slot)) {
+    if (!canParentCancelByTime(booking.slot)) {
       throw new BusinessError(APP_ERRORS.TODAY_PARENT_CANCEL_NOT_ALLOWED);
     }
 
@@ -243,9 +242,9 @@ export async function getBookingsByContactPhone(contactPhone: string) {
   });
 
   return bookings.map((booking) => {
-    const canCancel = booking.status === BookingStatus.ACTIVE && canParentCancelBooking(booking.slot);
+    const canCancel = booking.status === BookingStatus.ACTIVE && canParentCancelByTime(booking.slot);
     const cancelHint =
-      booking.status === BookingStatus.ACTIVE && !canParentCancelBooking(booking.slot)
+      booking.status === BookingStatus.ACTIVE && !canParentCancelByTime(booking.slot)
         ? APP_ERRORS.TODAY_PARENT_CANCEL_NOT_ALLOWED.message
         : null;
 

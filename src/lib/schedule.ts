@@ -168,16 +168,6 @@ function cellForSlot(slot: ScheduleSlotSummary): Omit<ScheduleCell, "key"> {
     };
   }
 
-  if (slot.status === "TODAY_LOCKED") {
-    return {
-      slotId: slot.id,
-      title: "今日不可约",
-      subtitle: "",
-      tone: "gray",
-      href: null,
-    };
-  }
-
   if (slot.status === "EXPIRED") {
     return {
       slotId: slot.id,

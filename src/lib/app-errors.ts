@@ -19,6 +19,11 @@ export const APP_ERRORS = {
     message: "该时间段刚刚被其他人约满，请选择其他时间。",
     status: 409,
   },
+  SLOT_ALREADY_STARTED: {
+    code: "SLOT_ALREADY_STARTED",
+    message: "课程已开始或已过期，无法预约。",
+    status: 400,
+  },
   COURSE_TYPE_MISMATCH: {
     code: "COURSE_TYPE_MISMATCH",
     message: "该时间段已锁定其他课程类型，不能选择不同课型",
@@ -31,7 +36,7 @@ export const APP_ERRORS = {
   },
   TODAY_PARENT_CANCEL_NOT_ALLOWED: {
     code: "TODAY_PARENT_CANCEL_NOT_ALLOWED",
-    message: "今日课程不可在线取消，请联系教练",
+    message: "当天课程不可在线取消，请联系教练。",
     status: 400,
   },
   BOOKING_NOT_FOUND: {

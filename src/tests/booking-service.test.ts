@@ -76,6 +76,20 @@ async function createTodaySlot() {
   });
 }
 
+async function createStartedSlot() {
+  const startAt = new Date(Date.now() - 60 * 60 * 1000);
+  const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
+
+  return prisma.slot.create({
+    data: {
+      coachId: testCoachId,
+      startAt,
+      endAt,
+      status: SlotStatus.OPEN,
+    },
+  });
+}
+
 async function activeCount(slotId: string) {
   return prisma.booking.count({
     where: {
@@ -152,6 +166,32 @@ describe.sequential("booking service core rules", () => {
         courseType: CourseType.ONE_TO_ONE,
       }),
     ).rejects.toThrow();
+  });
+
+  it("allows parent booking for a later slot today", async () => {
+    const slot = await createTodaySlot();
+
+    await createParentBooking({
+      slotId: slot.id,
+      studentName: "Phase Today Future",
+      contactPhone: phone(26),
+      courseType: CourseType.ONE_TO_ONE,
+    });
+
+    expect(await activeCount(slot.id)).toBe(1);
+  });
+
+  it("rejects parent booking for a slot that has already started", async () => {
+    const slot = await createStartedSlot();
+
+    await expect(
+      createParentBooking({
+        slotId: slot.id,
+        studentName: "Phase Started",
+        contactPhone: phone(27),
+        courseType: CourseType.ONE_TO_ONE,
+      }),
+    ).rejects.toThrow("课程已开始或已过期，无法预约。");
   });
 
   it("books 1v2 up to 2/2 and rejects the third parent", async () => {
@@ -309,7 +349,7 @@ describe.sequential("booking service core rules", () => {
         bookingId: booking.id,
         contactPhone: phone(17),
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow("当天课程不可在线取消，请联系教练。");
 
     await cancelCoachBooking({
       bookingId: booking.id,

@@ -27,7 +27,7 @@ describe("weekly schedule", () => {
     expect(schedule.rows[0].cells).toHaveLength(7);
   });
 
-  it("maps schedule cell text and tones from slot status", () => {
+  it("maps schedule cell tones and links from slot status", () => {
     const week = getScheduleWeek("2026-07-06", shanghaiDateAt("2026-06-30", 9));
     const schedule = buildWeeklySchedule({
       weekStart: week.weekStart,
@@ -75,26 +75,75 @@ describe("weekly schedule", () => {
     });
 
     expect(schedule.rows[0].cells[0]).toMatchObject({
-      title: "可预约",
-      subtitle: "任选课型",
       tone: "green",
       href: "/parent/slots/available",
     });
     expect(schedule.rows[1].cells[0]).toMatchObject({
-      title: "可加入",
       subtitle: "1v3 2/3",
       tone: "green",
     });
     expect(schedule.rows[2].cells[0]).toMatchObject({
-      title: "已约满",
       subtitle: "1v3 3/3",
       tone: "red",
     });
     expect(schedule.rows[7].cells[1]).toMatchObject({
-      title: "大班课",
-      subtitle: "不可预约",
       tone: "gray",
       href: null,
+    });
+  });
+
+  it("does not use a today-wide locked status for parent schedule cells", () => {
+    const week = getScheduleWeek("2026-07-01", shanghaiDateAt("2026-07-01", 9));
+    const schedule = buildWeeklySchedule({
+      weekStart: week.weekStart,
+      weekEnd: week.weekEnd,
+      previousWeekHref: null,
+      nextWeekHref: null,
+      slots: [
+        {
+          id: "today-future",
+          startAt: shanghaiDateAt("2026-07-01", 16).toISOString(),
+          endAt: shanghaiDateAt("2026-07-01", 17).toISOString(),
+          status: "AVAILABLE",
+          courseType: null,
+          activeCount: 0,
+          capacity: null,
+        },
+        {
+          id: "today-started",
+          startAt: shanghaiDateAt("2026-07-01", 12).toISOString(),
+          endAt: shanghaiDateAt("2026-07-01", 13).toISOString(),
+          status: "EXPIRED",
+          courseType: null,
+          activeCount: 0,
+          capacity: null,
+        },
+        {
+          id: "today-joinable",
+          startAt: shanghaiDateAt("2026-07-01", 17).toISOString(),
+          endAt: shanghaiDateAt("2026-07-01", 18).toISOString(),
+          status: "LOCKED_NOT_FULL",
+          courseType: CourseType.ONE_TO_TWO,
+          activeCount: 1,
+          capacity: 2,
+        },
+      ],
+    });
+    const serialized = JSON.stringify(schedule);
+
+    expect(serialized).not.toContain("今日不可约");
+    expect(schedule.rows[4].cells[2]).toMatchObject({
+      tone: "green",
+      href: "/parent/slots/today-future",
+    });
+    expect(schedule.rows[0].cells[2]).toMatchObject({
+      tone: "gray",
+      href: null,
+    });
+    expect(schedule.rows[5].cells[2]).toMatchObject({
+      subtitle: "1v2 1/2",
+      tone: "green",
+      href: "/parent/slots/today-joinable",
     });
   });
 });

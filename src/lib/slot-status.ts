@@ -1,6 +1,6 @@
 import { CourseType, SlotStatus } from "@prisma/client";
 import { getCourseCapacity } from "@/lib/course";
-import { isPastSlot, isTodayInShanghai } from "@/lib/dates";
+import { canParentBookByTime, canParentCancelByTime } from "@/lib/slot-time-rules";
 
 export type SlotDisplayStatus =
   | "CLOSED"
@@ -26,8 +26,7 @@ export function calculateSlotDisplayStatus(
 ): SlotDisplayStatus {
   if (slot.status === SlotStatus.CANCELLED) return "CANCELLED";
   if (slot.status === SlotStatus.CLOSED) return "CLOSED";
-  if (isPastSlot(slot.endAt, now)) return "EXPIRED";
-  if (isTodayInShanghai(slot.startAt, now)) return "TODAY_LOCKED";
+  if (!canParentBookByTime(slot, now)) return "EXPIRED";
 
   if (!slot.courseType || activeCount === 0) return "AVAILABLE";
 
@@ -41,7 +40,7 @@ export function canParentBookSlot(slot: SlotStatusInput, activeCount: number, no
 }
 
 export function canParentCancelBooking(slot: Pick<SlotStatusInput, "startAt" | "endAt">, now = new Date()) {
-  return !isTodayInShanghai(slot.startAt, now) && !isPastSlot(slot.endAt, now);
+  return canParentCancelByTime(slot, now);
 }
 
 export function slotStatusText(status: SlotDisplayStatus) {

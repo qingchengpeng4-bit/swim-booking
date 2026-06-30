@@ -41,7 +41,8 @@ export async function ParentSchedulePage({ week }: ParentSchedulePageProps) {
       <WeeklyScheduleGrid schedule={schedule} />
 
       <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700">
-        <p>今日课程不可在线预约，请联系教练。</p>
+        <p>已开始或已过去的课程不可预约。</p>
+        <p className="mt-1">当天课程不可在线取消，请联系教练。</p>
         <p className="mt-1">多人课会显示已报名学员姓名，用于确认是否加入正确拼团。</p>
       </div>
     </main>

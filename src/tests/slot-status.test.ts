@@ -64,7 +64,7 @@ describe("slot status", () => {
     expect(status).toBe("FULL");
   });
 
-  it("blocks parent booking for today", () => {
+  it("allows parent booking for a later slot today", () => {
     const slot = {
       status: SlotStatus.OPEN,
       startAt: futureDate(0, 15),
@@ -73,7 +73,20 @@ describe("slot status", () => {
       capacity: null,
     };
 
-    expect(calculateSlotDisplayStatus(slot, 0, now)).toBe("TODAY_LOCKED");
+    expect(calculateSlotDisplayStatus(slot, 0, now)).toBe("AVAILABLE");
+    expect(canParentBookSlot(slot, 0, now)).toBe(true);
+  });
+
+  it("marks a started slot today as expired and blocks parent booking", () => {
+    const slot = {
+      status: SlotStatus.OPEN,
+      startAt: futureDate(0, 11),
+      endAt: futureDate(0, 12),
+      courseType: null,
+      capacity: null,
+    };
+
+    expect(calculateSlotDisplayStatus(slot, 0, now)).toBe("EXPIRED");
     expect(canParentBookSlot(slot, 0, now)).toBe(false);
   });
 
