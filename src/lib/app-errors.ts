@@ -69,6 +69,11 @@ export const APP_ERRORS = {
     message: "数据库暂时不可用，请稍后再试",
     status: 503,
   },
+  STUDENT_NAME_REQUIRED: {
+    code: "STUDENT_NAME_REQUIRED",
+    message: "请填写学员姓名。",
+    status: 400,
+  },
 } as const;
 
 export type AppErrorCode = keyof typeof APP_ERRORS;

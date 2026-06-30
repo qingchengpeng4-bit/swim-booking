@@ -6,7 +6,7 @@ import { APP_ERRORS } from "@/lib/app-errors";
 import { canCancelActiveBooking, canJoinSlot } from "@/lib/booking-rules";
 import { toParentBookingView } from "@/lib/privacy-rules";
 import { isRetryableTransactionError } from "@/lib/prisma-errors";
-import { canParentBookByTime, canParentCancelByTime } from "@/lib/slot-time-rules";
+import { canCoachAddBookingByTime, canParentBookByTime, canParentCancelByTime } from "@/lib/slot-time-rules";
 
 export type CreateBookingInput = {
   slotId: string;
@@ -14,6 +14,14 @@ export type CreateBookingInput = {
   contactPhone: string;
   courseType: CourseType;
   remark?: string;
+};
+
+export type CreateCoachBookingInput = {
+  slotId: string;
+  studentName: string;
+  contactPhone?: string | null;
+  courseType: CourseType;
+  remark?: string | null;
 };
 
 export type CancelBookingInput = {
@@ -138,6 +146,89 @@ export async function createParentBooking(input: CreateBookingInput) {
   }
 
   throw new BusinessError(APP_ERRORS.BOOKING_CONFLICT_RETRY_LATER);
+}
+
+export async function createCoachBooking(input: CreateCoachBookingInput) {
+  const studentName = input.studentName.trim();
+  if (!studentName) {
+    throw new BusinessError(APP_ERRORS.STUDENT_NAME_REQUIRED);
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const slot = await tx.slot.findUnique({
+      where: { id: input.slotId },
+    });
+
+    if (!slot) {
+      throw new BusinessError(APP_ERRORS.SLOT_NOT_FOUND);
+    }
+
+    if (slot.status !== SlotStatus.OPEN) {
+      throw new BusinessError(APP_ERRORS.SLOT_CLOSED);
+    }
+
+    if (!canCoachAddBookingByTime(slot)) {
+      throw new BusinessError(APP_ERRORS.SLOT_ALREADY_STARTED);
+    }
+
+    const activeBookings = await tx.booking.findMany({
+      where: {
+        slotId: slot.id,
+        status: BookingStatus.ACTIVE,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      select: {
+        status: true,
+        courseType: true,
+      },
+    });
+
+    const joinResult = canJoinSlot({
+      slot,
+      activeBookings,
+      requestedCourseType: input.courseType,
+    });
+
+    if (!joinResult.ok) {
+      throw new BusinessError(joinResult.error ?? APP_ERRORS.SLOT_CLOSED);
+    }
+
+    if (!slot.courseType || slot.capacity === null) {
+      await tx.slot.update({
+        where: { id: slot.id },
+        data: {
+          courseType: joinResult.lockedCourseType,
+          capacity: joinResult.capacity,
+        },
+      });
+    }
+
+    return tx.booking.create({
+      data: {
+        slotId: slot.id,
+        coachId: slot.coachId,
+        studentName,
+        contactPhone: input.contactPhone?.trim() ?? "",
+        courseType: joinResult.lockedCourseType,
+        remark: input.remark?.trim() || null,
+      },
+      select: {
+        id: true,
+        studentName: true,
+        contactPhone: true,
+        courseType: true,
+        status: true,
+        slotId: true,
+        createdAt: true,
+      },
+    });
+  }, {
+    isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    maxWait: 10000,
+    timeout: 20000,
+  });
 }
 
 export async function cancelParentBooking(input: CancelBookingInput) {

@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { BookingStatus, CourseType, SlotStatus, UserRole } from "@prisma/client";
 import { prisma } from "../lib/db";
-import { createParentBooking, cancelParentBooking, cancelCoachBooking } from "../services/booking.service";
+import { createParentBooking, createCoachBooking, cancelParentBooking, cancelCoachBooking } from "../services/booking.service";
 import { getCoachSlotDetail, getOpenSlots, getParentSlotDetail } from "../services/slot.service";
+import { createBookingSchema } from "../lib/validators";
 
 const testRunId = `phase1-${Date.now()}`;
 const testPhonePrefix = "199";
@@ -436,6 +437,51 @@ describe.sequential("booking service core rules", () => {
       remark: "Coach can see this",
     });
     expect(detail?.bookings[0].createdAt).toEqual(expect.any(String));
+  });
+
+  it("allows coach-created bookings without a contact phone", async () => {
+    const slot = await createFutureSlot();
+
+    const booking = await createCoachBooking({
+      slotId: slot.id,
+      studentName: "Phase Coach Manual",
+      courseType: CourseType.ONE_TO_ONE,
+    });
+
+    const saved = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    const updated = await getSlot(slot.id);
+
+    expect(saved.studentName).toBe("Phase Coach Manual");
+    expect(saved.contactPhone).toBe("");
+    expect(saved.status).toBe(BookingStatus.ACTIVE);
+    expect(updated.courseType).toBe(CourseType.ONE_TO_ONE);
+    expect(updated.capacity).toBe(1);
+    expect(await activeCount(slot.id)).toBe(1);
+  });
+
+  it("rejects coach-created bookings without a student name", async () => {
+    const slot = await createFutureSlot();
+
+    await expect(
+      createCoachBooking({
+        slotId: slot.id,
+        studentName: "   ",
+        courseType: CourseType.ONE_TO_ONE,
+      }),
+    ).rejects.toThrow("请填写学员姓名。");
+
+    expect(await activeCount(slot.id)).toBe(0);
+  });
+
+  it("keeps parent self-booking contact phone validation required", () => {
+    const parsed = createBookingSchema.safeParse({
+      slotId: "00000000-0000-0000-0000-000000000000",
+      studentName: "Phase Parent",
+      contactPhone: "",
+      courseType: CourseType.ONE_TO_ONE,
+    });
+
+    expect(parsed.success).toBe(false);
   });
 
   it("stays stable after repeated booking, cancellation, and slot list refreshes", async () => {
