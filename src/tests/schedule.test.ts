@@ -8,7 +8,7 @@ function shanghaiDateAt(dateOnly: string, hour: number) {
 }
 
 describe("weekly schedule", () => {
-  it("builds eight rows and seven day columns for a week", () => {
+  it("builds nine rows and seven day columns for a week", () => {
     const week = getScheduleWeek("2026-07-06", shanghaiDateAt("2026-06-30", 9));
     const schedule = buildWeeklySchedule({
       slots: [],
@@ -19,9 +19,11 @@ describe("weekly schedule", () => {
     });
 
     expect(schedule.days).toHaveLength(7);
-    expect(schedule.rows).toHaveLength(8);
+    expect(schedule.rows).toHaveLength(9);
     expect(schedule.rows[0].timeLabel).toBe("12:00");
     expect(schedule.rows[7].timeLabel).toBe("19:00");
+    expect(schedule.rows[8].timeLabel).toBe("20:00");
+    expect(schedule.rows.some((row) => row.timeLabel === "21:00")).toBe(false);
     expect(schedule.rows[0].cells).toHaveLength(7);
   });
 

@@ -1,7 +1,7 @@
 import { CourseType } from "@prisma/client";
 
 export const BOOKING_END_DATE = "2026-08-31";
-export const SCHEDULE_HOURS = [12, 13, 14, 15, 16, 17, 18, 19] as const;
+export const SCHEDULE_HOURS = [12, 13, 14, 15, 16, 17, 18, 19, 20] as const;
 
 const SHANGHAI_TIME_ZONE = "Asia/Shanghai";
 
