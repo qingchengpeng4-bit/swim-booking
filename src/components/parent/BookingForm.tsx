@@ -65,34 +65,51 @@ export function BookingForm({ slotId, lockedCourseType }: BookingFormProps) {
     }
   }
 
+  const inputClass =
+    "mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm transition focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/20 disabled:bg-gray-100 disabled:text-gray-500";
+
   return (
-    <form aria-busy={submitting} className="space-y-4 rounded border border-gray-200 bg-white p-4" onSubmit={onSubmit}>
-      {error ? <p className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
-      {successMessage ? <p className="rounded bg-green-50 p-3 text-sm text-green-800">{successMessage}</p> : null}
+    <form aria-busy={submitting} className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm" onSubmit={onSubmit}>
+      {error ? (
+        <div className="flex items-start gap-3 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+          <span className="mt-0.5 h-4 w-0.5 shrink-0 rounded bg-red-400" />
+          <span>{error}</span>
+        </div>
+      ) : null}
+      {successMessage ? (
+        <div className="flex items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
+          <span className="mt-0.5 h-4 w-0.5 shrink-0 rounded bg-emerald-400" />
+          <span>{successMessage}</span>
+        </div>
+      ) : null}
       {submitting && !successMessage ? (
-        <p className="rounded bg-blue-50 p-3 text-sm text-blue-800">正在提交，请不要重复点击。</p>
+        <div className="flex items-start gap-3 rounded-lg border border-sky-100 bg-sky-50 p-3 text-sm text-sky-800">
+          <span className="mt-0.5 h-4 w-0.5 shrink-0 rounded bg-sky-400" />
+          <span>正在提交，请不要重复点击。</span>
+        </div>
       ) : null}
 
       <label className="block">
-        <span className="text-sm font-medium">学员姓名（请填写大名）</span>
-        <input className="mt-1 w-full rounded border border-gray-300 px-3 py-2" disabled={submitting} name="studentName" required />
+        <span className="text-sm font-medium text-gray-700">学员姓名（请填写大名）</span>
+        <input className={inputClass} disabled={submitting} name="studentName" required placeholder="例如：张三" />
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium">家长手机号</span>
+        <span className="text-sm font-medium text-gray-700">家长手机号</span>
         <input
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2"
+          className={inputClass}
           disabled={submitting}
           inputMode="numeric"
           name="contactPhone"
           required
+          placeholder="用于查询和取消预约"
         />
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium">课程类型</span>
+        <span className="text-sm font-medium text-gray-700">课程类型</span>
         <select
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2"
+          className={inputClass}
           disabled={Boolean(lockedCourseType) || submitting}
           value={courseType}
           onChange={(event) => setCourseType(event.target.value as CourseTypeValue)}
@@ -106,11 +123,15 @@ export function BookingForm({ slotId, lockedCourseType }: BookingFormProps) {
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium">备注（可选）</span>
-        <textarea className="mt-1 w-full rounded border border-gray-300 px-3 py-2" disabled={submitting} name="remark" rows={3} />
+        <span className="text-sm font-medium text-gray-700">备注（可选）</span>
+        <textarea className={inputClass} disabled={submitting} name="remark" placeholder="如有特殊需求可在此备注" rows={3} />
       </label>
 
-      <button className="w-full rounded bg-blue-600 px-4 py-3 text-white disabled:bg-gray-400" disabled={submitting} type="submit">
+      <button
+        className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-sky-600 hover:to-cyan-600 hover:shadow-md active:scale-[0.98] disabled:bg-gradient-to-r disabled:from-gray-300 disabled:to-gray-300 disabled:shadow-none"
+        disabled={submitting}
+        type="submit"
+      >
         {submitting ? "正在提交预约..." : "提交预约"}
       </button>
     </form>

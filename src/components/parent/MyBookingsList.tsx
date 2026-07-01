@@ -52,20 +52,57 @@ export function MyBookingsList({ initialBookings }: { initialBookings: BookingIt
 
   return (
     <div className="mt-6">
-      {error ? <p className="mb-3 rounded bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+      {error ? (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-700">
+          <span className="mt-0.5 h-4 w-0.5 shrink-0 rounded bg-rose-400" />
+          <span>{error}</span>
+        </div>
+      ) : null}
       {initialBookings.length === 0 ? (
-        <p className="rounded bg-white p-4 text-gray-600">没有查到预约记录。</p>
+        <div className="rounded-xl border border-sky-100 bg-sky-50/60 p-6 text-center text-sm text-sky-800">
+          没有查到预约记录。
+        </div>
       ) : (
         <div className="space-y-3">
           {initialBookings.map((booking) => (
-            <article key={booking.id} className="rounded border border-gray-200 bg-white p-4">
-              <div className="font-medium">{new Date(booking.startAt).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}</div>
-              <div className="mt-2 text-sm text-gray-700">学员：{booking.studentName}</div>
-              <div className="mt-1 text-sm text-gray-700">课型：{COURSE_LABELS[booking.courseType]}</div>
-              <div className="mt-1 text-sm text-gray-700">状态：{booking.status === "ACTIVE" ? "有效" : "已取消"}</div>
-              {booking.cancelHint ? <p className="mt-2 text-sm text-amber-700">{booking.cancelHint}</p> : null}
+            <article key={booking.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <div className="text-base font-semibold text-gray-950">
+                    {new Date(booking.startAt).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    booking.status === "ACTIVE"
+                      ? "border border-emerald-200 bg-emerald-50 text-emerald-800"
+                      : "border border-gray-200 bg-gray-50 text-gray-500"
+                  }`}
+                >
+                  {booking.status === "ACTIVE" ? "有效" : "已取消"}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-1.5 text-sm text-gray-700">
+                <div>
+                  <span className="text-gray-500">学员：</span>
+                  {booking.studentName}
+                </div>
+                <div>
+                  <span className="text-gray-500">课型：</span>
+                  {COURSE_LABELS[booking.courseType]}
+                </div>
+              </div>
+              {booking.cancelHint ? (
+                <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm text-amber-800">
+                  {booking.cancelHint}
+                </div>
+              ) : null}
               {booking.canCancel ? (
-                <button className="mt-3 rounded border border-red-300 px-3 py-2 text-sm text-red-700" onClick={() => cancelParentBooking(booking.id)} type="button">
+                <button
+                  className="mt-4 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 active:scale-[0.98]"
+                  onClick={() => cancelParentBooking(booking.id)}
+                  type="button"
+                >
                   取消预约
                 </button>
               ) : null}

@@ -11,19 +11,19 @@ export function WeekNavigator({
   previousWeekHref,
   nextWeekHref,
 }: WeekNavigatorProps) {
-  const buttonClass = "rounded border px-3 py-2 text-sm font-medium";
-  const activeClass = "border-gray-300 bg-white text-gray-900";
-  const disabledClass = "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400";
+  const buttonClass = "rounded-xl border px-4 py-2 text-sm font-medium transition";
+  const activeClass = "border-gray-200 bg-white text-gray-900 shadow-sm hover:border-gray-300 hover:shadow-md";
+  const disabledClass = "cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300";
 
   return (
-    <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4">
+    <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         {previousWeekHref ? (
           <Link className={`${buttonClass} ${activeClass}`} href={previousWeekHref}>
-            上一周
+            &larr; 上一周
           </Link>
         ) : (
-          <span className={`${buttonClass} ${disabledClass}`}>上一周</span>
+          <span className={`${buttonClass} ${disabledClass}`}>&larr; 上一周</span>
         )}
 
         <div className="text-center">
@@ -33,10 +33,10 @@ export function WeekNavigator({
 
         {nextWeekHref ? (
           <Link className={`${buttonClass} ${activeClass}`} href={nextWeekHref}>
-            下一周
+            下一周 &rarr;
           </Link>
         ) : (
-          <span className={`${buttonClass} ${disabledClass}`}>下一周</span>
+          <span className={`${buttonClass} ${disabledClass}`}>下一周 &rarr;</span>
         )}
       </div>
     </div>

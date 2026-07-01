@@ -25,6 +25,28 @@ type LoadState =
       error: string;
     };
 
+function LoadingSkeleton() {
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="animate-pulse space-y-3">
+        <div className="flex gap-2">
+          <div className="h-4 w-16 rounded bg-gray-200" />
+          <div className="h-4 w-16 rounded bg-gray-200" />
+          <div className="h-4 w-16 rounded bg-gray-200" />
+        </div>
+        <div className="mt-4 grid grid-cols-8 gap-2">
+          {Array.from({ length: 16 }).map((_, i) => (
+            <div key={i} className="h-16 rounded-lg bg-gray-100" />
+          ))}
+        </div>
+        <div className="mt-2 flex items-center justify-center">
+          <div className="h-4 w-40 rounded bg-sky-100" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function CoachScheduleClient({ weekStartKey }: CoachScheduleClientProps) {
   const [retryToken, setRetryToken] = useState(0);
   const [state, setState] = useState<LoadState>({
@@ -67,19 +89,15 @@ export function CoachScheduleClient({ weekStartKey }: CoachScheduleClientProps) 
   }, [weekStartKey, retryToken]);
 
   if (state.status === "loading") {
-    return (
-      <section className="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-600">
-        课表加载中，请稍候...
-      </section>
-    );
+    return <LoadingSkeleton />;
   }
 
   if (state.status === "error") {
     return (
-      <section className="rounded-lg border border-red-100 bg-red-50 p-6 text-sm text-red-900">
-        <p>{state.error}</p>
+      <section className="rounded-xl border border-rose-100 bg-rose-50 p-8 text-center text-sm">
+        <p className="text-rose-800">{state.error}</p>
         <button
-          className="mt-3 rounded border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-900"
+          className="mt-4 rounded-lg border border-rose-200 bg-white px-5 py-2 text-sm font-medium text-rose-700 shadow-sm transition hover:bg-rose-50"
           type="button"
           onClick={() => setRetryToken((current) => current + 1)}
         >

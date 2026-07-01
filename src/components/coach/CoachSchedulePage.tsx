@@ -19,19 +19,31 @@ export function CoachSchedulePage({ week }: CoachSchedulePageProps) {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
-      <PageHeader title="教练课表" description="查看一周内每节课的预约人数、课型和学员姓名。" />
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Link className="rounded border border-gray-300 bg-white px-3 py-2 text-sm" href="/coach/dashboard">
-          列表视图
-        </Link>
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-950">教练课表</h1>
+            <p className="mt-1 text-sm text-gray-600">查看一周内每节课的预约人数、课型和学员姓名。</p>
+          </div>
+          <Link
+            className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-800 transition hover:bg-sky-100 hover:shadow-sm"
+            href="/coach/dashboard"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            列表视图
+          </Link>
+        </div>
       </div>
 
-      <WeekNavigator
-        weekRangeText={shellSchedule.weekRangeText}
-        previousWeekHref={scheduleWeek.previousWeekHref}
-        nextWeekHref={scheduleWeek.nextWeekHref}
-      />
+      <div className="mt-5">
+        <WeekNavigator
+          weekRangeText={shellSchedule.weekRangeText}
+          previousWeekHref={scheduleWeek.previousWeekHref}
+          nextWeekHref={scheduleWeek.nextWeekHref}
+        />
+      </div>
 
       <CoachScheduleClient weekStartKey={getDateKey(scheduleWeek.weekStart)} />
     </main>
