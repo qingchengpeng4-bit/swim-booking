@@ -1,5 +1,7 @@
-import Link from "next/link";
+"use client";
+
 import { Fragment } from "react";
+import { PendingNavigationLink } from "@/components/common/PendingNavigationLink";
 import type { CoachScheduleCell, CoachWeeklySchedule } from "@/lib/coach-schedule";
 
 type CoachWeeklyScheduleGridProps = {
@@ -30,9 +32,9 @@ function CoachScheduleCellView({ cell }: { cell: CoachScheduleCell }) {
 
   if (cell.href) {
     return (
-      <Link className={cellClass(cell.tone)} href={cell.href}>
+      <PendingNavigationLink className={cellClass(cell.tone)} href={cell.href} pendingLabel="正在打开课程详情...">
         {content}
-      </Link>
+      </PendingNavigationLink>
     );
   }
 

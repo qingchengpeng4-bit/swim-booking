@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CoachCancelButton } from "@/components/coach/CoachCancelButton";
+import { PendingNavigationLink } from "@/components/common/PendingNavigationLink";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { isCoachAuthenticated } from "@/lib/coach-auth";
@@ -44,9 +45,9 @@ export default async function CoachSlotPage({ params }: CoachSlotPageProps) {
         </div>
         <div className="mt-4">
           {slot.canBook ? (
-            <Link className="inline-flex rounded bg-blue-600 px-4 py-2 text-sm text-white" href={`/coach/slots/${slot.id}/book`}>
+            <PendingNavigationLink className="inline-flex rounded bg-blue-600 px-4 py-2 text-sm text-white" href={`/coach/slots/${slot.id}/book`} pendingLabel="正在打开添加预约页面...">
               手动添加预约
-            </Link>
+            </PendingNavigationLink>
           ) : (
             <p className="text-sm text-gray-600">当前时间段不可添加预约。</p>
           )}

@@ -7,6 +7,7 @@ export function CoachLoginForm() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,27 +25,38 @@ export function CoachLoginForm() {
       }),
     });
     const data = await response.json();
-    setSubmitting(false);
 
     if (!response.ok) {
+      setSubmitting(false);
       setError(data.error ?? "登录失败");
       return;
     }
 
-    router.push("/coach/calendar");
-    router.refresh();
+    setSuccess(true);
+    setSubmitting(false);
+    setTimeout(() => {
+      router.push("/coach/calendar");
+      router.refresh();
+    }, 800);
   }
 
   return (
     <form className="space-y-4 rounded border border-gray-200 bg-white p-4" onSubmit={onSubmit}>
       {error ? <p className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
-      <label className="block">
-        <span className="text-sm font-medium">教练密码</span>
-        <input className="mt-1 w-full rounded border border-gray-300 px-3 py-2" name="password" type="password" required />
-      </label>
-      <button className="w-full rounded bg-blue-600 px-4 py-3 text-white disabled:bg-gray-400" disabled={submitting} type="submit">
-        {submitting ? "登录中..." : "登录"}
-      </button>
+      {success ? (
+        <p className="rounded bg-green-50 p-3 text-sm text-green-700">登录成功，正在进入后台...</p>
+      ) : null}
+      {!success ? (
+        <>
+          <label className="block">
+            <span className="text-sm font-medium">教练密码</span>
+            <input className="mt-1 w-full rounded border border-gray-300 px-3 py-2" name="password" type="password" required />
+          </label>
+          <button className="w-full rounded bg-blue-600 px-4 py-3 text-white disabled:bg-gray-400" disabled={submitting} type="submit">
+            {submitting ? "正在登录..." : "登录"}
+          </button>
+        </>
+      ) : null}
     </form>
   );
 }

@@ -20,6 +20,7 @@ export function CoachManualBookingForm({ slotId, lockedCourseType }: CoachManual
   const router = useRouter();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [courseType, setCourseType] = useState<CourseTypeValue>(lockedCourseType ?? "ONE_TO_ONE");
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -43,29 +44,41 @@ export function CoachManualBookingForm({ slotId, lockedCourseType }: CoachManual
     });
 
     const data = await response.json();
-    setSubmitting(false);
 
     if (!response.ok) {
-      setError(data.error ?? "添加预约失败");
+      setSubmitting(false);
+      setError(data.error ?? "添加失败，请重试");
       return;
     }
 
-    router.push(`/coach/slots/${slotId}`);
-    router.refresh();
+    setSuccess(true);
+    setSubmitting(false);
+    setTimeout(() => {
+      router.push(`/coach/slots/${slotId}`);
+      router.refresh();
+    }, 800);
   }
+
+  const isDisabled = submitting || success;
 
   return (
     <form className="space-y-4 rounded border border-gray-200 bg-white p-4" onSubmit={onSubmit}>
       {error ? <p className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+      {success ? (
+        <p className="rounded bg-green-50 p-3 text-sm text-green-700">添加成功，正在跳转...</p>
+      ) : null}
+      {submitting ? (
+        <p className="rounded bg-blue-50 p-3 text-sm text-blue-700">正在添加，请不要重复点击。</p>
+      ) : null}
 
       <label className="block">
         <span className="text-sm font-medium">学员姓名</span>
-        <input className="mt-1 w-full rounded border border-gray-300 px-3 py-2" name="studentName" required />
+        <input className="mt-1 w-full rounded border border-gray-300 px-3 py-2 disabled:bg-gray-100" name="studentName" required disabled={isDisabled} />
       </label>
 
       <label className="block">
         <span className="text-sm font-medium">联系方式（可选）</span>
-        <input className="mt-1 w-full rounded border border-gray-300 px-3 py-2" name="contactPhone" />
+        <input className="mt-1 w-full rounded border border-gray-300 px-3 py-2 disabled:bg-gray-100" name="contactPhone" disabled={isDisabled} />
       </label>
 
       <label className="block">
@@ -76,8 +89,8 @@ export function CoachManualBookingForm({ slotId, lockedCourseType }: CoachManual
           </p>
         ) : null}
         <select
-          className="mt-1 w-full rounded border border-gray-300 px-3 py-2"
-          disabled={Boolean(lockedCourseType)}
+          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 disabled:bg-gray-100"
+          disabled={Boolean(lockedCourseType) || isDisabled}
           value={courseType}
           onChange={(event) => setCourseType(event.target.value as CourseTypeValue)}
         >
@@ -91,11 +104,11 @@ export function CoachManualBookingForm({ slotId, lockedCourseType }: CoachManual
 
       <label className="block">
         <span className="text-sm font-medium">备注（可选）</span>
-        <textarea className="mt-1 w-full rounded border border-gray-300 px-3 py-2" name="remark" rows={3} />
+        <textarea className="mt-1 w-full rounded border border-gray-300 px-3 py-2 disabled:bg-gray-100" name="remark" rows={3} disabled={isDisabled} />
       </label>
 
-      <button className="w-full rounded bg-blue-600 px-4 py-3 text-white disabled:bg-gray-400" disabled={submitting} type="submit">
-        {submitting ? "提交中..." : "添加预约"}
+      <button className="w-full rounded bg-blue-600 px-4 py-3 text-white disabled:bg-gray-400" disabled={isDisabled} type="submit">
+        {submitting ? "正在添加预约..." : success ? "添加成功，正在跳转..." : "添加预约"}
       </button>
     </form>
   );
