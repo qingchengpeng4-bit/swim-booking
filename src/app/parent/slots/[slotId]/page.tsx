@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PendingNavigationLink } from "@/components/common/PendingNavigationLink";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { getParentSlotDetail } from "@/services/slot.service";
@@ -34,9 +34,7 @@ export default async function SlotDetailPage({ params }: SlotDetailPageProps) {
           <StatusBadge text={`剩余：${slot.remaining ?? "未定"}`} />
         </div>
 
-        {slot.reminder ? (
-          <p className="mt-4 rounded bg-amber-50 p-3 text-sm text-amber-800">{slot.reminder}</p>
-        ) : null}
+        {slot.reminder ? <p className="mt-4 rounded bg-amber-50 p-3 text-sm text-amber-800">{slot.reminder}</p> : null}
 
         {slot.registeredStudentNames.length > 0 ? (
           <div className="mt-4">
@@ -50,13 +48,15 @@ export default async function SlotDetailPage({ params }: SlotDetailPageProps) {
         ) : null}
 
         {slot.canBook ? (
-          <Link className="mt-6 block rounded bg-blue-600 px-4 py-3 text-center text-white" href={`/parent/slots/${slot.id}/book`}>
+          <PendingNavigationLink
+            className="mt-6 block rounded bg-blue-600 px-4 py-3 text-center text-white"
+            href={`/parent/slots/${slot.id}/book`}
+            pendingLabel="正在打开预约表单..."
+          >
             去预约
-          </Link>
+          </PendingNavigationLink>
         ) : (
-          <p className="mt-6 rounded bg-gray-50 p-3 text-sm text-gray-700">
-            当前状态不可在线预约。
-          </p>
+          <p className="mt-6 rounded bg-gray-50 p-3 text-sm text-gray-700">当前状态不可在线预约。</p>
         )}
       </section>
     </main>
