@@ -150,11 +150,16 @@ describe("weekly schedule", () => {
 
   it("keeps parent schedule helper copy readable without placeholder question marks", () => {
     const source = readFileSync("src/components/parent/ParentSchedulePage.tsx", "utf8");
+    const clientSource = readFileSync("src/components/parent/ParentScheduleClient.tsx", "utf8");
 
     expect(source).toContain("已开始或已过去的课程不可预约。");
     expect(source).toContain("当天课程不可在线取消，请联系教练。");
     expect(source).toContain("多人课会显示已报名学员姓名");
+    expect(clientSource).toContain("课表加载中，请稍候");
+    expect(clientSource).toContain("课表加载失败，请重试。");
+    expect(clientSource).toContain("重试");
     expect(source).not.toContain("今日不可约");
     expect(source).not.toMatch(/\?{3,}/);
+    expect(clientSource).not.toMatch(/\?{3,}/);
   });
 });

@@ -1,19 +1,17 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/common/PageHeader";
+import { ParentScheduleClient } from "@/components/parent/ParentScheduleClient";
 import { WeekNavigator } from "@/components/parent/WeekNavigator";
-import { WeeklyScheduleGrid } from "@/components/parent/WeeklyScheduleGrid";
 import { buildWeeklySchedule, getScheduleWeek } from "@/lib/schedule";
-import { getParentWeeklySlots } from "@/services/slot.service";
 
 type ParentSchedulePageProps = {
   week?: string;
 };
 
-export async function ParentSchedulePage({ week }: ParentSchedulePageProps) {
+export function ParentSchedulePage({ week }: ParentSchedulePageProps) {
   const scheduleWeek = getScheduleWeek(week);
-  const slots = await getParentWeeklySlots(scheduleWeek.weekStart, scheduleWeek.queryEnd);
-  const schedule = buildWeeklySchedule({
-    slots,
+  const shellSchedule = buildWeeklySchedule({
+    slots: [],
     weekStart: scheduleWeek.weekStart,
     weekEnd: scheduleWeek.weekEnd,
     previousWeekHref: scheduleWeek.previousWeekHref,
@@ -34,11 +32,11 @@ export async function ParentSchedulePage({ week }: ParentSchedulePageProps) {
       </div>
 
       <WeekNavigator
-        weekRangeText={schedule.weekRangeText}
-        previousWeekHref={schedule.previousWeekHref}
-        nextWeekHref={schedule.nextWeekHref}
+        weekRangeText={shellSchedule.weekRangeText}
+        previousWeekHref={shellSchedule.previousWeekHref}
+        nextWeekHref={shellSchedule.nextWeekHref}
       />
-      <WeeklyScheduleGrid schedule={schedule} />
+      <ParentScheduleClient weekStartKey={shellSchedule.weekStartKey} />
 
       <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700">
         <p>已开始或已过去的课程不可预约。</p>

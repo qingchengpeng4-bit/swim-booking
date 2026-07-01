@@ -10,7 +10,14 @@ import {
 import { prisma } from "@/lib/db";
 import { getSlotCourseStateAfterCancel } from "@/lib/booking-rules";
 import { toCoachSlotDetail, toParentSlotDetail } from "@/lib/privacy-rules";
-import { COACH_WEEKLY_SCHEDULE_TAG, PARENT_WEEKLY_SCHEDULE_TAG } from "@/lib/schedule-cache";
+import {
+  COACH_WEEKLY_SCHEDULE_REVALIDATE_SECONDS,
+  COACH_WEEKLY_SCHEDULE_TAG,
+  getCoachWeeklyScheduleTag,
+  getParentWeeklyScheduleTag,
+  PARENT_WEEKLY_SCHEDULE_REVALIDATE_SECONDS,
+  PARENT_WEEKLY_SCHEDULE_TAG,
+} from "@/lib/schedule-cache";
 
 type TxClient = Prisma.TransactionClient;
 
@@ -102,13 +109,14 @@ async function queryParentWeeklySlots(weekStartIso: string, weekEndIso: string) 
   return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
 }
 
-const getCachedParentWeeklySlots = unstable_cache(queryParentWeeklySlots, ["parent-weekly-slots"], {
-  revalidate: 10,
-  tags: [PARENT_WEEKLY_SCHEDULE_TAG],
-});
-
 export async function getParentWeeklySlots(weekStart: Date, weekEnd: Date) {
-  return getCachedParentWeeklySlots(weekStart.toISOString(), weekEnd.toISOString());
+  const weekStartIso = weekStart.toISOString();
+  const weekEndIso = weekEnd.toISOString();
+
+  return unstable_cache(() => queryParentWeeklySlots(weekStartIso, weekEndIso), ["parent-weekly-slots", weekStartIso], {
+    revalidate: PARENT_WEEKLY_SCHEDULE_REVALIDATE_SECONDS,
+    tags: [PARENT_WEEKLY_SCHEDULE_TAG, getParentWeeklyScheduleTag(weekStart)],
+  })();
 }
 
 export async function getCoachSlots() {
@@ -176,13 +184,14 @@ async function queryCoachWeeklySlots(weekStartIso: string, weekEndIso: string) {
   }));
 }
 
-const getCachedCoachWeeklySlots = unstable_cache(queryCoachWeeklySlots, ["coach-weekly-slots"], {
-  revalidate: 10,
-  tags: [COACH_WEEKLY_SCHEDULE_TAG],
-});
-
 export async function getCoachWeeklySlots(weekStart: Date, weekEnd: Date) {
-  return getCachedCoachWeeklySlots(weekStart.toISOString(), weekEnd.toISOString());
+  const weekStartIso = weekStart.toISOString();
+  const weekEndIso = weekEnd.toISOString();
+
+  return unstable_cache(() => queryCoachWeeklySlots(weekStartIso, weekEndIso), ["coach-weekly-slots", weekStartIso], {
+    revalidate: COACH_WEEKLY_SCHEDULE_REVALIDATE_SECONDS,
+    tags: [COACH_WEEKLY_SCHEDULE_TAG, getCoachWeeklyScheduleTag(weekStart)],
+  })();
 }
 
 export async function getParentSlotDetail(slotId: string) {
