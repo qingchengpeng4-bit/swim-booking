@@ -10,6 +10,20 @@ function getCoachPassword() {
   return process.env.COACH_LOGIN_PASSWORD ?? "";
 }
 
+export function shouldUseSecureCoachCookie() {
+  return process.env.COACH_COOKIE_SECURE === "true";
+}
+
+export function getCoachSessionCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: shouldUseSecureCoachCookie(),
+    path: "/",
+    maxAge: SESSION_MAX_AGE_SECONDS,
+  };
+}
+
 function signSession(payload: string) {
   return crypto.createHmac("sha256", getCoachPassword()).update(payload).digest("hex");
 }
@@ -53,13 +67,7 @@ export async function isCoachAuthenticated() {
 
 export async function setCoachSessionCookie() {
   const cookieStore = await cookies();
-  cookieStore.set(COACH_SESSION_COOKIE, createCoachSessionValue(), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_MAX_AGE_SECONDS,
-  });
+  cookieStore.set(COACH_SESSION_COOKIE, createCoachSessionValue(), getCoachSessionCookieOptions());
 }
 
 export async function clearCoachSessionCookie() {
