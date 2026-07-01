@@ -148,7 +148,7 @@ describe("weekly schedule", () => {
     });
   });
 
-  it("keeps parent schedule helper copy readable without placeholder question marks", () => {
+  it("keeps parent schedule helper copy readable and supports cached return rendering", () => {
     const source = readFileSync("src/components/parent/ParentSchedulePage.tsx", "utf8");
     const clientSource = readFileSync("src/components/parent/ParentScheduleClient.tsx", "utf8");
 
@@ -156,6 +156,10 @@ describe("weekly schedule", () => {
     expect(source).toContain("当天课程不可在线取消，请联系教练。");
     expect(source).toContain("多人课会显示已报名学员姓名");
     expect(clientSource).toContain("animate-pulse");
+    expect(clientSource).toContain("readBrowserScheduleCache");
+    expect(clientSource).toContain("writeBrowserScheduleCache");
+    expect(clientSource).toContain("已显示最近课表，正在更新");
+    expect(clientSource).toContain("刷新失败，显示的是最近数据。");
     expect(clientSource).toContain("课表加载失败，请重试。");
     expect(clientSource).toContain("重试");
     expect(source).not.toContain("今日不可约");

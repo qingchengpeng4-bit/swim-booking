@@ -87,6 +87,10 @@ describe("coach weekly schedule API", () => {
 
     expect(source).toContain("LoadingSkeleton");
     expect(source).toContain("animate-pulse");
+    expect(source).toContain("readBrowserScheduleCache");
+    expect(source).toContain("writeBrowserScheduleCache");
+    expect(source).toContain("已显示最近课表，正在更新");
+    expect(source).toContain("刷新失败，显示的是最近数据。");
     expect(source).toContain("课表加载失败，请重试。");
     expect(source).toContain("重试");
   });

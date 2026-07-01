@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LoadingDots, LoadingSpinner } from "@/components/ui/LoadingState";
+import { clearBrowserScheduleCache } from "@/lib/browser-schedule-cache";
 
 type CourseTypeValue = "ONE_TO_ONE" | "ONE_TO_TWO" | "ONE_TO_THREE";
 
@@ -57,6 +58,7 @@ export function BookingForm({ slotId, lockedCourseType }: BookingFormProps) {
         return;
       }
 
+      clearBrowserScheduleCache("parent");
       setSuccessMessage("预约成功，正在跳转...");
       router.push(`/parent/my-bookings?contactPhone=${encodeURIComponent(String(formData.get("contactPhone") ?? ""))}`);
       router.refresh();

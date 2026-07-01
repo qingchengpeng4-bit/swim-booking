@@ -8,6 +8,8 @@ describe("booking form pending feedback", () => {
     expect(source).toContain("PendingNavigationLink");
     expect(source).toContain("正在打开预约表单...");
     expect(source).toContain("slot.canBook");
+    expect(source).toContain("ScheduleBackButton");
+    expect(source).toContain('fallbackHref="/parent"');
   });
 
   it("keeps parent booking form submit pending, success, and failure feedback animated", () => {
@@ -20,6 +22,7 @@ describe("booking form pending feedback", () => {
     expect(source).toContain("正在提交预约...");
     expect(source).toContain("预约失败，请重试。");
     expect(source).toContain("预约成功，正在跳转...");
+    expect(source).toContain('clearBrowserScheduleCache("parent")');
     expect(source).toContain("disabled={submitting}");
     expect(source).toContain("if (submitting) return;");
   });
@@ -33,6 +36,15 @@ describe("booking form pending feedback", () => {
     expect(source).toContain("正在添加，请不要重复点击。");
     expect(source).toContain("正在添加预约...");
     expect(source).toContain("添加成功，正在跳转...");
+    expect(source).toContain("clearBrowserScheduleCache();");
+  });
+
+  it("clears schedule cache after parent and coach cancellations", () => {
+    const parentCancelSource = readFileSync("src/components/parent/MyBookingsList.tsx", "utf8");
+    const coachCancelSource = readFileSync("src/components/coach/CoachCancelButton.tsx", "utf8");
+
+    expect(parentCancelSource).toContain('clearBrowserScheduleCache("parent")');
+    expect(coachCancelSource).toContain("clearBrowserScheduleCache();");
   });
 
   it("provides a loading fallback for the my bookings redirect target", () => {

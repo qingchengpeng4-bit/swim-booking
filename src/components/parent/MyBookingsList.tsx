@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { clearBrowserScheduleCache } from "@/lib/browser-schedule-cache";
 
 type CourseTypeValue = "ONE_TO_ONE" | "ONE_TO_TWO" | "ONE_TO_THREE";
 
@@ -43,6 +44,7 @@ export function MyBookingsList({ initialBookings }: { initialBookings: BookingIt
       return;
     }
 
+    clearBrowserScheduleCache("parent");
     router.refresh();
   }
 

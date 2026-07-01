@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { clearBrowserScheduleCache } from "@/lib/browser-schedule-cache";
 
 export function CoachCancelButton({ bookingId }: { bookingId: string }) {
   const router = useRouter();
@@ -29,6 +30,7 @@ export function CoachCancelButton({ bookingId }: { bookingId: string }) {
       return;
     }
 
+    clearBrowserScheduleCache();
     router.refresh();
   }
 

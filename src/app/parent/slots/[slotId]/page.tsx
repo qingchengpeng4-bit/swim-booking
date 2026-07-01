@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PendingNavigationLink } from "@/components/common/PendingNavigationLink";
 import { PageHeader } from "@/components/common/PageHeader";
+import { ScheduleBackButton } from "@/components/common/ScheduleBackButton";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { getParentSlotDetail } from "@/services/slot.service";
 
@@ -23,6 +24,7 @@ export default async function SlotDetailPage({ params }: SlotDetailPageProps) {
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
       <PageHeader title="课程详情" />
+      <ScheduleBackButton fallbackHref="/parent" />
 
       {/* Time hero */}
       <section className="rounded-xl border border-cyan-200 bg-gradient-to-b from-cyan-50 to-white p-6 shadow-sm">

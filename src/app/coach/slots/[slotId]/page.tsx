@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CoachCancelButton } from "@/components/coach/CoachCancelButton";
 import { PendingNavigationLink } from "@/components/common/PendingNavigationLink";
 import { PageHeader } from "@/components/common/PageHeader";
+import { ScheduleBackButton } from "@/components/common/ScheduleBackButton";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { isCoachAuthenticated } from "@/lib/coach-auth";
 import { COURSE_LABELS } from "@/lib/course";
@@ -36,12 +36,7 @@ export default async function CoachSlotPage({ params }: CoachSlotPageProps) {
       <PageHeader title="时间段详情" />
 
       {/* Back link */}
-      <Link className="mb-4 inline-flex items-center gap-1 text-sm text-sky-600 transition hover:text-sky-800" href="/coach/dashboard">
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        返回教练后台
-      </Link>
+      <ScheduleBackButton fallbackHref="/coach/calendar" />
 
       {/* Info card */}
       <section className="rounded-xl border border-cyan-200 bg-gradient-to-b from-cyan-50 to-white p-6 shadow-sm">

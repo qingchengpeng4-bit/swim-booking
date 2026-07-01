@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { WeeklyScheduleGrid } from "@/components/parent/WeeklyScheduleGrid";
+import { readBrowserScheduleCache, writeBrowserScheduleCache } from "@/lib/browser-schedule-cache";
 import type { WeeklySchedule } from "@/lib/schedule";
 
 type ParentScheduleClientProps = {
@@ -17,7 +18,8 @@ type LoadState =
   | {
       status: "ready";
       schedule: WeeklySchedule;
-      error: null;
+      error: string | null;
+      isRefreshing: boolean;
     }
   | {
       status: "error";
@@ -59,7 +61,18 @@ export function ParentScheduleClient({ weekStartKey }: ParentScheduleClientProps
     const controller = new AbortController();
 
     async function loadSchedule() {
-      setState({ status: "loading", schedule: null, error: null });
+      const cached = readBrowserScheduleCache<WeeklySchedule>("parent", weekStartKey);
+
+      if (cached) {
+        setState({
+          status: "ready",
+          schedule: cached.data,
+          error: null,
+          isRefreshing: true,
+        });
+      } else {
+        setState({ status: "loading", schedule: null, error: null });
+      }
 
       try {
         const response = await fetch(`/api/parent/weekly-schedule?week=${encodeURIComponent(weekStartKey)}`, {
@@ -72,9 +85,21 @@ export function ParentScheduleClient({ weekStartKey }: ParentScheduleClientProps
           throw new Error(data?.error || "课表加载失败，请重试。");
         }
 
-        setState({ status: "ready", schedule: data.schedule, error: null });
+        writeBrowserScheduleCache("parent", weekStartKey, data.schedule);
+        setState({ status: "ready", schedule: data.schedule, error: null, isRefreshing: false });
       } catch (error) {
         if (controller.signal.aborted) return;
+
+        if (cached) {
+          setState({
+            status: "ready",
+            schedule: cached.data,
+            error: "刷新失败，显示的是最近数据。",
+            isRefreshing: false,
+          });
+          return;
+        }
+
         setState({
           status: "error",
           schedule: null,
@@ -107,5 +132,19 @@ export function ParentScheduleClient({ weekStartKey }: ParentScheduleClientProps
     );
   }
 
-  return <WeeklyScheduleGrid schedule={state.schedule} />;
+  return (
+    <div className="space-y-3">
+      {state.isRefreshing ? (
+        <div className="rounded-lg border border-sky-100 bg-sky-50 px-4 py-2 text-sm text-sky-700">
+          已显示最近课表，正在更新...
+        </div>
+      ) : null}
+      {state.error ? (
+        <div className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          {state.error}
+        </div>
+      ) : null}
+      <WeeklyScheduleGrid schedule={state.schedule} />
+    </div>
+  );
 }

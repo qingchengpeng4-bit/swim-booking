@@ -10,7 +10,7 @@ describe("parent pending navigation feedback", () => {
     expect(homeSource).toContain("PendingNavigationLink");
     expect(homeSource).toContain("正在打开课表...");
     expect(gridSource).toContain("PendingNavigationLink");
-    expect(gridSource).toContain("cell.tone === \"green\"");
+    expect(gridSource).toContain('cell.tone === "green"');
     expect(gridSource).toContain("正在进入预约页...");
     expect(pendingLinkSource).toContain("LoadingSpinner");
     expect(pendingLinkSource).toContain("LoadingDots");

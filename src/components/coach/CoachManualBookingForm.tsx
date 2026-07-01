@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LoadingDots, LoadingSpinner } from "@/components/ui/LoadingState";
+import { clearBrowserScheduleCache } from "@/lib/browser-schedule-cache";
 
 type CourseTypeValue = "ONE_TO_ONE" | "ONE_TO_TWO" | "ONE_TO_THREE";
 
@@ -56,6 +57,7 @@ export function CoachManualBookingForm({ slotId, lockedCourseType }: CoachManual
         return;
       }
 
+      clearBrowserScheduleCache();
       setSuccess(true);
       setTimeout(() => {
         router.push(`/coach/slots/${slotId}`);
