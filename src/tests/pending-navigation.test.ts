@@ -24,7 +24,12 @@ describe("parent pending navigation feedback", () => {
     expect(readFileSync("src/app/parent/calendar/loading.tsx", "utf8")).toContain("正在加载课表...");
     expect(readFileSync("src/app/parent/slots/[slotId]/loading.tsx", "utf8")).toContain("正在打开课程详情...");
     expect(readFileSync("src/app/parent/slots/[slotId]/book/loading.tsx", "utf8")).toContain("正在打开预约表单...");
-    expect(readFileSync("src/components/ui/LoadingState.tsx", "utf8")).toContain("animate-spin");
-    expect(readFileSync("src/components/ui/LoadingState.tsx", "utf8")).toContain("animate-bounce");
+    const loadingSource = readFileSync("src/components/ui/LoadingState.tsx", "utf8");
+
+    expect(loadingSource).toContain("CutePenguinLoading");
+    expect(loadingSource).toContain("viewBox=\"0 0 120 120\"");
+    expect(loadingSource).toContain("animate-bounce");
+    expect(loadingSource).toContain("animate-pulse");
+    expect(loadingSource).toContain("LoadingSpinner");
   });
 });
