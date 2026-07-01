@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { BookingStatus, CourseType, SlotStatus, UserRole } from "@prisma/client";
 import { prisma } from "../lib/db";
 import { createParentBooking, createCoachBooking, cancelParentBooking, cancelCoachBooking } from "../services/booking.service";
@@ -170,16 +170,23 @@ describe.sequential("booking service core rules", () => {
   });
 
   it("allows parent booking for a later slot today", async () => {
-    const slot = await createTodaySlot();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-07-01T15:30:00+08:00"));
 
-    await createParentBooking({
-      slotId: slot.id,
-      studentName: "Phase Today Future",
-      contactPhone: phone(26),
-      courseType: CourseType.ONE_TO_ONE,
-    });
+    try {
+      const slot = await createTodaySlot();
 
-    expect(await activeCount(slot.id)).toBe(1);
+      await createParentBooking({
+        slotId: slot.id,
+        studentName: "Phase Today Future",
+        contactPhone: phone(26),
+        courseType: CourseType.ONE_TO_ONE,
+      });
+
+      expect(await activeCount(slot.id)).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("rejects parent booking for a slot that has already started", async () => {
