@@ -1,4 +1,5 @@
 import { BookingStatus, SlotStatus, type CourseType, type Prisma } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 import { COURSE_LABELS, getCourseCapacity } from "@/lib/course";
 import { formatShanghaiDateTime } from "@/lib/dates";
 import {
@@ -9,6 +10,7 @@ import {
 import { prisma } from "@/lib/db";
 import { getSlotCourseStateAfterCancel } from "@/lib/booking-rules";
 import { toCoachSlotDetail, toParentSlotDetail } from "@/lib/privacy-rules";
+import { COACH_WEEKLY_SCHEDULE_TAG, PARENT_WEEKLY_SCHEDULE_TAG } from "@/lib/schedule-cache";
 
 type TxClient = Prisma.TransactionClient;
 
@@ -68,12 +70,12 @@ export async function getOpenSlots() {
   return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
 }
 
-export async function getParentWeeklySlots(weekStart: Date, weekEnd: Date) {
+async function queryParentWeeklySlots(weekStartIso: string, weekEndIso: string) {
   const slots = await prisma.slot.findMany({
     where: {
       startAt: {
-        gte: weekStart,
-        lt: weekEnd,
+        gte: new Date(weekStartIso),
+        lt: new Date(weekEndIso),
       },
     },
     orderBy: {
@@ -100,6 +102,15 @@ export async function getParentWeeklySlots(weekStart: Date, weekEnd: Date) {
   return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
 }
 
+const getCachedParentWeeklySlots = unstable_cache(queryParentWeeklySlots, ["parent-weekly-slots"], {
+  revalidate: 10,
+  tags: [PARENT_WEEKLY_SCHEDULE_TAG],
+});
+
+export async function getParentWeeklySlots(weekStart: Date, weekEnd: Date) {
+  return getCachedParentWeeklySlots(weekStart.toISOString(), weekEnd.toISOString());
+}
+
 export async function getCoachSlots() {
   const slots = await prisma.slot.findMany({
     orderBy: {
@@ -120,12 +131,12 @@ export async function getCoachSlots() {
   return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
 }
 
-export async function getCoachWeeklySlots(weekStart: Date, weekEnd: Date) {
+async function queryCoachWeeklySlots(weekStartIso: string, weekEndIso: string) {
   const slots = await prisma.slot.findMany({
     where: {
       startAt: {
-        gte: weekStart,
-        lt: weekEnd,
+        gte: new Date(weekStartIso),
+        lt: new Date(weekEndIso),
       },
     },
     orderBy: {
@@ -163,6 +174,15 @@ export async function getCoachWeeklySlots(weekStart: Date, weekEnd: Date) {
     activeCount: slot.bookings.length,
     bookings: slot.bookings,
   }));
+}
+
+const getCachedCoachWeeklySlots = unstable_cache(queryCoachWeeklySlots, ["coach-weekly-slots"], {
+  revalidate: 10,
+  tags: [COACH_WEEKLY_SCHEDULE_TAG],
+});
+
+export async function getCoachWeeklySlots(weekStart: Date, weekEnd: Date) {
+  return getCachedCoachWeeklySlots(weekStart.toISOString(), weekEnd.toISOString());
 }
 
 export async function getParentSlotDetail(slotId: string) {

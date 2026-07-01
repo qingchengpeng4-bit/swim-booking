@@ -1,4 +1,5 @@
 import { isCoachAuthenticated } from "@/lib/coach-auth";
+import { revalidateScheduleViews } from "@/lib/schedule-cache";
 import { createCoachBookingSchema } from "@/lib/validators";
 import { createCoachBooking } from "@/services/booking.service";
 import { toErrorResponse } from "@/services/errors";
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const input = createCoachBookingSchema.parse(body);
     const booking = await createCoachBooking(input);
+    revalidateScheduleViews(booking.slotId);
     return Response.json({ booking });
   } catch (error) {
     if (error && typeof error === "object" && "issues" in error) {

@@ -274,6 +274,7 @@ export async function cancelParentBooking(input: CancelBookingInput) {
       },
       select: {
         id: true,
+        slotId: true,
         status: true,
         cancelledAt: true,
       },
@@ -314,6 +315,7 @@ export async function cancelCoachBooking(input: CoachCancelBookingInput) {
       },
       select: {
         id: true,
+        slotId: true,
         status: true,
         cancelledAt: true,
       },
