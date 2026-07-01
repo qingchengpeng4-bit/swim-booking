@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PendingNavigationLink } from "@/components/common/PendingNavigationLink";
 
 export default function HomePage() {
   return (
@@ -9,12 +10,13 @@ export default function HomePage() {
         <p className="mt-3 text-gray-600">请选择你的身份进入对应页面。</p>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          <Link
+          <PendingNavigationLink
             className="rounded-lg border border-green-200 bg-green-50 px-4 py-4 text-center font-semibold text-green-900"
             href="/parent"
+            pendingLabel="正在打开课表..."
           >
             家长预约课程
-          </Link>
+          </PendingNavigationLink>
           <Link
             className="rounded-lg border border-gray-300 bg-white px-4 py-4 text-center font-semibold text-gray-900"
             href="/coach"

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Fragment } from "react";
+import { PendingNavigationLink } from "@/components/common/PendingNavigationLink";
 import type { WeeklySchedule, ScheduleCell } from "@/lib/schedule";
 
 type WeeklyScheduleGridProps = {
@@ -30,6 +31,14 @@ function ScheduleCellView({ cell }: { cell: ScheduleCell }) {
   );
 
   if (cell.href) {
+    if (cell.tone === "green") {
+      return (
+        <PendingNavigationLink className={cellClass(cell.tone)} href={cell.href} pendingLabel="正在进入预约页...">
+          {content}
+        </PendingNavigationLink>
+      );
+    }
+
     return (
       <Link className={cellClass(cell.tone)} href={cell.href}>
         {content}
