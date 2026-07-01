@@ -48,14 +48,6 @@ export function CutePenguinLoading({ className = "" }: { className?: string }) {
         <path d="M56 54C58.5 57 61.5 57 64 54" stroke="#FB7185" strokeLinecap="round" strokeWidth="3" />
         <path d="M34 63C24 68 20 78 22 88C31 86 37 81 39 72" fill="#111827" />
         <path d="M86 63C96 68 100 78 98 88C89 86 83 81 81 72" fill="#111827" />
-        <path
-          d="M31 72C36 58 48 50 60 50C72 50 84 58 89 72C81 83 72 88 60 88C48 88 39 83 31 72Z"
-          fill="#38BDF8"
-        />
-        <path
-          d="M43 72C47 65 53 62 60 62C67 62 73 65 77 72C73 78 67 81 60 81C53 81 47 78 43 72Z"
-          fill="#F8FAFC"
-        />
         <path d="M48 98L39 107" stroke="#FB7185" strokeLinecap="round" strokeWidth="7" />
         <path d="M72 98L81 107" stroke="#FB7185" strokeLinecap="round" strokeWidth="7" />
       </svg>
