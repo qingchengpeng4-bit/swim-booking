@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { MouseEvent, ReactNode } from "react";
 import { useState } from "react";
+import { LoadingDots, LoadingSpinner } from "@/components/ui/LoadingState";
 
 type PendingNavigationLinkProps = {
   href: string;
@@ -40,7 +41,15 @@ export function PendingNavigationLink({
         setPending(true);
       }}
     >
-      {pending ? pendingLabel : children}
+      {pending ? (
+        <span className="inline-flex items-center justify-center gap-2">
+          <LoadingSpinner className="h-3.5 w-3.5" />
+          <span>{pendingLabel}</span>
+          <LoadingDots />
+        </span>
+      ) : (
+        children
+      )}
     </Link>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LoadingDots, LoadingSpinner } from "@/components/ui/LoadingState";
 
 type CourseTypeValue = "ONE_TO_ONE" | "ONE_TO_TWO" | "ONE_TO_THREE";
 
@@ -77,21 +78,23 @@ export function BookingForm({ slotId, lockedCourseType }: BookingFormProps) {
         </div>
       ) : null}
       {successMessage ? (
-        <div className="flex items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
-          <span className="mt-0.5 h-4 w-0.5 shrink-0 rounded bg-emerald-400" />
+        <div className="flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-800">
+          <LoadingSpinner className="shrink-0 text-emerald-600" />
           <span>{successMessage}</span>
+          <LoadingDots />
         </div>
       ) : null}
       {submitting && !successMessage ? (
-        <div className="flex items-start gap-3 rounded-lg border border-sky-100 bg-sky-50 p-3 text-sm text-sky-800">
-          <span className="mt-0.5 h-4 w-0.5 shrink-0 rounded bg-sky-400" />
-          <span>正在提交，请不要重复点击。</span>
+        <div className="flex items-center gap-3 rounded-lg border border-sky-100 bg-sky-50 p-3 text-sm text-sky-800">
+          <LoadingSpinner className="shrink-0 text-sky-600" />
+          <span>正在提交，请不要重复点击</span>
+          <LoadingDots />
         </div>
       ) : null}
 
       <label className="block">
         <span className="text-sm font-medium text-gray-700">学员姓名（请填写大名）</span>
-        <input className={inputClass} disabled={submitting} name="studentName" required placeholder="例如：张三" />
+        <input className={inputClass} disabled={submitting} name="studentName" placeholder="例如：张三" required />
       </label>
 
       <label className="block">
@@ -101,8 +104,8 @@ export function BookingForm({ slotId, lockedCourseType }: BookingFormProps) {
           disabled={submitting}
           inputMode="numeric"
           name="contactPhone"
-          required
           placeholder="用于查询和取消预约"
+          required
         />
       </label>
 
@@ -128,11 +131,18 @@ export function BookingForm({ slotId, lockedCourseType }: BookingFormProps) {
       </label>
 
       <button
-        className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-sky-600 hover:to-cyan-600 hover:shadow-md active:scale-[0.98] disabled:bg-gradient-to-r disabled:from-gray-300 disabled:to-gray-300 disabled:shadow-none"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-sky-600 hover:to-cyan-600 hover:shadow-md active:scale-[0.98] disabled:bg-gradient-to-r disabled:from-gray-300 disabled:to-gray-300 disabled:shadow-none"
         disabled={submitting}
         type="submit"
       >
-        {submitting ? "正在提交预约..." : "提交预约"}
+        {submitting ? (
+          <>
+            <LoadingSpinner className="h-4 w-4" />
+            <span>正在提交预约...</span>
+          </>
+        ) : (
+          "提交预约"
+        )}
       </button>
     </form>
   );

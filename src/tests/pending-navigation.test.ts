@@ -12,15 +12,19 @@ describe("parent pending navigation feedback", () => {
     expect(gridSource).toContain("PendingNavigationLink");
     expect(gridSource).toContain("cell.tone === \"green\"");
     expect(gridSource).toContain("正在进入预约页...");
+    expect(pendingLinkSource).toContain("LoadingSpinner");
+    expect(pendingLinkSource).toContain("LoadingDots");
     expect(pendingLinkSource).toContain("aria-busy");
     expect(pendingLinkSource).toContain("aria-disabled");
     expect(pendingLinkSource).toContain("event.preventDefault()");
   });
 
-  it("provides route-level loading fallbacks for parent navigation", () => {
-    expect(readFileSync("src/app/parent/loading.tsx", "utf8")).toContain("正在加载课表...");
+  it("provides animated route-level loading fallbacks for parent navigation", () => {
+    expect(readFileSync("src/app/parent/loading.tsx", "utf8")).toContain("正在打开课表...");
     expect(readFileSync("src/app/parent/calendar/loading.tsx", "utf8")).toContain("正在加载课表...");
-    expect(readFileSync("src/app/parent/slots/[slotId]/loading.tsx", "utf8")).toContain("正在打开预约页...");
-    expect(readFileSync("src/app/parent/slots/[slotId]/book/loading.tsx", "utf8")).toContain("正在打开预约页...");
+    expect(readFileSync("src/app/parent/slots/[slotId]/loading.tsx", "utf8")).toContain("正在打开课程详情...");
+    expect(readFileSync("src/app/parent/slots/[slotId]/book/loading.tsx", "utf8")).toContain("正在打开预约表单...");
+    expect(readFileSync("src/components/ui/LoadingState.tsx", "utf8")).toContain("animate-spin");
+    expect(readFileSync("src/components/ui/LoadingState.tsx", "utf8")).toContain("animate-bounce");
   });
 });

@@ -85,7 +85,8 @@ describe("coach weekly schedule API", () => {
   it("keeps client loading and retry copy available", () => {
     const source = readFileSync("src/components/coach/CoachScheduleClient.tsx", "utf8");
 
-    expect(source).toContain("课表加载中，请稍候");
+    expect(source).toContain("LoadingSkeleton");
+    expect(source).toContain("animate-pulse");
     expect(source).toContain("课表加载失败，请重试。");
     expect(source).toContain("重试");
   });
