@@ -1,20 +1,18 @@
 import Link from "next/link";
-import { CoachWeeklyScheduleGrid } from "@/components/coach/CoachWeeklyScheduleGrid";
+import { CoachScheduleClient } from "@/components/coach/CoachScheduleClient";
 import { PageHeader } from "@/components/common/PageHeader";
 import { WeekNavigator } from "@/components/parent/WeekNavigator";
 import { buildCoachWeeklySchedule } from "@/lib/coach-schedule";
-import { getScheduleWeek } from "@/lib/schedule";
-import { getCoachWeeklySlots } from "@/services/slot.service";
+import { getDateKey, getScheduleWeek } from "@/lib/schedule";
 
 type CoachSchedulePageProps = {
   week?: string;
 };
 
-export async function CoachSchedulePage({ week }: CoachSchedulePageProps) {
+export function CoachSchedulePage({ week }: CoachSchedulePageProps) {
   const scheduleWeek = getScheduleWeek(week, new Date(), "/coach/calendar");
-  const slots = await getCoachWeeklySlots(scheduleWeek.weekStart, scheduleWeek.queryEnd);
-  const schedule = buildCoachWeeklySchedule({
-    slots,
+  const shellSchedule = buildCoachWeeklySchedule({
+    slots: [],
     weekStart: scheduleWeek.weekStart,
     weekEnd: scheduleWeek.weekEnd,
   });
@@ -30,12 +28,12 @@ export async function CoachSchedulePage({ week }: CoachSchedulePageProps) {
       </div>
 
       <WeekNavigator
-        weekRangeText={schedule.weekRangeText}
+        weekRangeText={shellSchedule.weekRangeText}
         previousWeekHref={scheduleWeek.previousWeekHref}
         nextWeekHref={scheduleWeek.nextWeekHref}
       />
 
-      <CoachWeeklyScheduleGrid schedule={schedule} />
+      <CoachScheduleClient weekStartKey={getDateKey(scheduleWeek.weekStart)} />
     </main>
   );
 }
