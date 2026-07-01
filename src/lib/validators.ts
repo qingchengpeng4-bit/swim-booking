@@ -14,6 +14,14 @@ export const createBookingSchema = z.object({
   remark: z.string().trim().max(200, "备注不能超过 200 字").optional().or(z.literal("")),
 });
 
+export const createCoachBookingSchema = z.object({
+  slotId: z.string().uuid("时间段 ID 不正确"),
+  studentName: z.string().trim().min(1, "请填写学员姓名。").max(30, "学员姓名过长"),
+  contactPhone: z.string().trim().max(30, "联系方式过长").optional().or(z.literal("")),
+  courseType: z.nativeEnum(CourseType),
+  remark: z.string().trim().max(200, "备注不能超过 200 字").optional().or(z.literal("")),
+});
+
 export const cancelBookingSchema = z.object({
   bookingId: z.string().uuid("预约 ID 不正确"),
   contactPhone: phoneSchema,

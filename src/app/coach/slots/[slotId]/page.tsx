@@ -42,6 +42,15 @@ export default async function CoachSlotPage({ params }: CoachSlotPageProps) {
           <StatusBadge text={`课型：${slot.courseTypeText}`} />
           <StatusBadge text={`人数：${slot.activeCount}/${slot.capacity ?? "未定"}`} />
         </div>
+        <div className="mt-4">
+          {slot.canBook ? (
+            <Link className="inline-flex rounded bg-blue-600 px-4 py-2 text-sm text-white" href={`/coach/slots/${slot.id}/book`}>
+              手动添加预约
+            </Link>
+          ) : (
+            <p className="text-sm text-gray-600">当前时间段不可添加预约。</p>
+          )}
+        </div>
       </section>
 
       <section className="mt-4 space-y-3">
