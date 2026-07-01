@@ -66,7 +66,7 @@ export const APP_ERRORS = {
   },
   DATABASE_UNAVAILABLE: {
     code: "DATABASE_UNAVAILABLE",
-    message: "数据库暂时不可用，请稍后再试",
+    message: "系统暂时繁忙，请稍后再试。",
     status: 503,
   },
   STUDENT_NAME_REQUIRED: {

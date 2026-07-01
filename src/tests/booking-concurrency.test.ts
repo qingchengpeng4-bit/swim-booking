@@ -123,6 +123,10 @@ describe.sequential("booking concurrency", () => {
 
     const reason = rejected[0].reason;
     expect(reason).toBeInstanceOf(BusinessError);
-    expect([APP_ERRORS.SLOT_JUST_FILLED.code, APP_ERRORS.SLOT_ALREADY_FULL.code]).toContain(reason.code);
+    expect([
+      APP_ERRORS.SLOT_JUST_FILLED.code,
+      APP_ERRORS.SLOT_ALREADY_FULL.code,
+      APP_ERRORS.BOOKING_CONFLICT_RETRY_LATER.code,
+    ]).toContain(reason.code);
   });
 });

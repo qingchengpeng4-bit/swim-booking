@@ -5,7 +5,7 @@ import { refreshSlotCourseState } from "@/services/slot.service";
 import { APP_ERRORS } from "@/lib/app-errors";
 import { canCancelActiveBooking, canJoinSlot } from "@/lib/booking-rules";
 import { toParentBookingView } from "@/lib/privacy-rules";
-import { isRetryableTransactionError } from "@/lib/prisma-errors";
+import { isDatabaseConnectionError, isRetryableTransactionError } from "@/lib/prisma-errors";
 import { canCoachAddBookingByTime, canParentBookByTime, canParentCancelByTime } from "@/lib/slot-time-rules";
 
 export type CreateBookingInput = {
@@ -128,6 +128,7 @@ async function createParentBookingOnce(input: CreateBookingInput) {
 
 export async function createParentBooking(input: CreateBookingInput) {
   let retryCount = 0;
+  let lastRetryableError: "database" | "transaction" | null = null;
 
   while (retryCount <= CREATE_BOOKING_MAX_RETRIES) {
     try {
@@ -137,15 +138,23 @@ export async function createParentBooking(input: CreateBookingInput) {
         throw new BusinessError(APP_ERRORS.SLOT_JUST_FILLED);
       }
 
-      if (!isRetryableTransactionError(error)) {
-        throw error;
+      if (isDatabaseConnectionError(error)) {
+        lastRetryableError = "database";
+        retryCount += 1;
+        continue;
       }
 
-      retryCount += 1;
+      if (isRetryableTransactionError(error)) {
+        lastRetryableError = "transaction";
+        retryCount += 1;
+        continue;
+      }
+
+      throw error;
     }
   }
 
-  throw new BusinessError(APP_ERRORS.BOOKING_CONFLICT_RETRY_LATER);
+  throw new BusinessError(lastRetryableError === "database" ? APP_ERRORS.DATABASE_UNAVAILABLE : APP_ERRORS.BOOKING_CONFLICT_RETRY_LATER);
 }
 
 export async function createCoachBooking(input: CreateCoachBookingInput) {
