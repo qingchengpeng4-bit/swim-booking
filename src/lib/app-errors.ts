@@ -24,6 +24,11 @@ export const APP_ERRORS = {
     message: "课程已开始或已过期，无法预约。",
     status: 400,
   },
+  SLOT_NOT_RELEASED: {
+    code: "SLOT_NOT_RELEASED",
+    message: "该时间段暂未开放预约，请等待教练开放。",
+    status: 400,
+  },
   COURSE_TYPE_MISMATCH: {
     code: "COURSE_TYPE_MISMATCH",
     message: "该时间段已锁定其他课程类型，不能选择不同课型",

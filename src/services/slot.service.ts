@@ -18,6 +18,7 @@ import {
   PARENT_WEEKLY_SCHEDULE_REVALIDATE_SECONDS,
   PARENT_WEEKLY_SCHEDULE_TAG,
 } from "@/lib/schedule-cache";
+import { getParentScheduleRelease, getShanghaiDayEnd, isSlotReleasedForParent } from "@/services/schedule-release.service";
 
 type TxClient = Prisma.TransactionClient;
 
@@ -53,8 +54,14 @@ export async function getSlotActiveBookingCount(slotId: string, tx: TxClient | t
 }
 
 export async function getOpenSlots() {
+  const releasedUntil = await getParentScheduleRelease();
+  if (!releasedUntil) return [];
+
   const slots = await prisma.slot.findMany({
     where: {
+      startAt: {
+        lte: getShanghaiDayEnd(releasedUntil),
+      },
       status: {
         in: [SlotStatus.OPEN, SlotStatus.CANCELLED],
       },
@@ -77,12 +84,13 @@ export async function getOpenSlots() {
   return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
 }
 
-async function queryParentWeeklySlots(weekStartIso: string, weekEndIso: string) {
+async function queryParentWeeklySlots(weekStartIso: string, weekEndIso: string, releasedUntil: string) {
   const slots = await prisma.slot.findMany({
     where: {
       startAt: {
         gte: new Date(weekStartIso),
         lt: new Date(weekEndIso),
+        lte: getShanghaiDayEnd(releasedUntil),
       },
     },
     orderBy: {
@@ -109,11 +117,13 @@ async function queryParentWeeklySlots(weekStartIso: string, weekEndIso: string) 
   return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
 }
 
-export async function getParentWeeklySlots(weekStart: Date, weekEnd: Date) {
+export async function getParentWeeklySlots(weekStart: Date, weekEnd: Date, releasedUntil: string | null) {
+  if (!releasedUntil) return [];
+
   const weekStartIso = weekStart.toISOString();
   const weekEndIso = weekEnd.toISOString();
 
-  return unstable_cache(() => queryParentWeeklySlots(weekStartIso, weekEndIso), ["parent-weekly-slots", weekStartIso], {
+  return unstable_cache(() => queryParentWeeklySlots(weekStartIso, weekEndIso, releasedUntil), ["parent-weekly-slots", weekStartIso, releasedUntil], {
     revalidate: PARENT_WEEKLY_SCHEDULE_REVALIDATE_SECONDS,
     tags: [PARENT_WEEKLY_SCHEDULE_TAG, getParentWeeklyScheduleTag(weekStart)],
   })();
@@ -213,6 +223,8 @@ export async function getParentSlotDetail(slotId: string) {
   });
 
   if (!slot) return null;
+  const releasedUntil = await getParentScheduleRelease();
+  if (!isSlotReleasedForParent(slot.startAt, releasedUntil)) return null;
 
   return toParentSlotDetail(slot, slot.bookings);
 }

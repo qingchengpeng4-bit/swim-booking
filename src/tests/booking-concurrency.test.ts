@@ -4,9 +4,11 @@ import { prisma } from "../lib/db";
 import { createParentBooking } from "../services/booking.service";
 import { BusinessError } from "../services/errors";
 import { APP_ERRORS } from "../lib/app-errors";
+import { PARENT_SCHEDULE_RELEASED_UNTIL_KEY } from "../services/schedule-release.service";
 
 const testRunId = `phase2c-${Date.now()}`;
 let testCoachId = "";
+let originalReleaseSetting: { value: string } | null = null;
 
 function shanghaiDateAt(dayOffset: number, hour: number, minute = 0) {
   const now = new Date();
@@ -52,6 +54,26 @@ async function cleanupTestData() {
 
 beforeAll(async () => {
   await cleanupTestData();
+  originalReleaseSetting = await prisma.systemSetting.findUnique({
+    where: {
+      key: PARENT_SCHEDULE_RELEASED_UNTIL_KEY,
+    },
+    select: {
+      value: true,
+    },
+  });
+  await prisma.systemSetting.upsert({
+    where: {
+      key: PARENT_SCHEDULE_RELEASED_UNTIL_KEY,
+    },
+    create: {
+      key: PARENT_SCHEDULE_RELEASED_UNTIL_KEY,
+      value: "2099-12-31",
+    },
+    update: {
+      value: "2099-12-31",
+    },
+  });
   const user = await prisma.user.create({
     data: {
       role: UserRole.COACH,
@@ -71,6 +93,26 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await cleanupTestData();
+  if (originalReleaseSetting) {
+    await prisma.systemSetting.upsert({
+      where: {
+        key: PARENT_SCHEDULE_RELEASED_UNTIL_KEY,
+      },
+      create: {
+        key: PARENT_SCHEDULE_RELEASED_UNTIL_KEY,
+        value: originalReleaseSetting.value,
+      },
+      update: {
+        value: originalReleaseSetting.value,
+      },
+    });
+  } else {
+    await prisma.systemSetting.deleteMany({
+      where: {
+        key: PARENT_SCHEDULE_RELEASED_UNTIL_KEY,
+      },
+    });
+  }
   await prisma.$disconnect();
 });
 

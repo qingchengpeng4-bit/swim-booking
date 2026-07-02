@@ -1,13 +1,15 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+﻿import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { BookingStatus, CourseType, SlotStatus, UserRole } from "@prisma/client";
 import { prisma } from "../lib/db";
 import { createParentBooking, createCoachBooking, cancelParentBooking, cancelCoachBooking } from "../services/booking.service";
 import { getCoachSlotDetail, getOpenSlots, getParentSlotDetail } from "../services/slot.service";
 import { createBookingSchema } from "../lib/validators";
+import { PARENT_SCHEDULE_RELEASED_UNTIL_KEY } from "../services/schedule-release.service";
 
 const testRunId = `phase1-${Date.now()}`;
 const testPhonePrefix = "199";
 let testCoachId = "";
+let originalReleaseSetting: { value: string } | null = null;
 
 function shanghaiDateAt(dayOffset: number, hour: number, minute = 0) {
   const now = new Date();
@@ -132,14 +134,48 @@ async function cleanupTestData() {
   }
 }
 
+async function setParentScheduleRelease(value: string | null) {
+  if (value === null) {
+    await prisma.systemSetting.deleteMany({
+      where: {
+        key: PARENT_SCHEDULE_RELEASED_UNTIL_KEY,
+      },
+    });
+    return;
+  }
+
+  await prisma.systemSetting.upsert({
+    where: {
+      key: PARENT_SCHEDULE_RELEASED_UNTIL_KEY,
+    },
+    create: {
+      key: PARENT_SCHEDULE_RELEASED_UNTIL_KEY,
+      value,
+    },
+    update: {
+      value,
+    },
+  });
+}
+
 beforeAll(async () => {
   await cleanupTestData();
+  originalReleaseSetting = await prisma.systemSetting.findUnique({
+    where: {
+      key: PARENT_SCHEDULE_RELEASED_UNTIL_KEY,
+    },
+    select: {
+      value: true,
+    },
+  });
+  await setParentScheduleRelease("2099-12-31");
   const coach = await createTestCoach();
   testCoachId = coach.id;
 });
 
 afterAll(async () => {
   await cleanupTestData();
+  await setParentScheduleRelease(originalReleaseSetting?.value ?? null);
   await prisma.$disconnect();
 });
 
@@ -202,6 +238,41 @@ describe.sequential("booking service core rules", () => {
     ).rejects.toThrow("课程已开始或已过期，无法预约。");
   });
 
+  it("rejects parent booking when no schedule release setting exists", async () => {
+    const slot = await createFutureSlot();
+    await setParentScheduleRelease(null);
+
+    try {
+      await expect(
+        createParentBooking({
+          slotId: slot.id,
+          studentName: "Phase Unreleased",
+          contactPhone: phone(28),
+          courseType: CourseType.ONE_TO_ONE,
+        }),
+      ).rejects.toThrow("该时间段暂未开放预约，请等待教练开放。");
+    } finally {
+      await setParentScheduleRelease("2099-12-31");
+    }
+  });
+
+  it("rejects parent booking outside the released schedule range", async () => {
+    const slot = await createFutureSlot(30);
+    await setParentScheduleRelease("2000-01-01");
+
+    try {
+      await expect(
+        createParentBooking({
+          slotId: slot.id,
+          studentName: "Phase Beyond Release",
+          contactPhone: phone(29),
+          courseType: CourseType.ONE_TO_ONE,
+        }),
+      ).rejects.toThrow("该时间段暂未开放预约，请等待教练开放。");
+    } finally {
+      await setParentScheduleRelease("2099-12-31");
+    }
+  });
   it("books 1v2 up to 2/2 and rejects the third parent", async () => {
     const slot = await createFutureSlot();
 

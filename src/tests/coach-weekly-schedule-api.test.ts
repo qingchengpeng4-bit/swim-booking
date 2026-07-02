@@ -84,6 +84,8 @@ describe("coach weekly schedule API", () => {
 
   it("keeps client loading and retry copy available", () => {
     const source = readFileSync("src/components/coach/CoachScheduleClient.tsx", "utf8");
+    const pageSource = readFileSync("src/components/coach/CoachSchedulePage.tsx", "utf8");
+    const panelSource = readFileSync("src/components/coach/ScheduleReleasePanel.tsx", "utf8");
 
     expect(source).toContain("LoadingSkeleton");
     expect(source).toContain("animate-pulse");
@@ -93,5 +95,10 @@ describe("coach weekly schedule API", () => {
     expect(source).toContain("刷新失败，显示的是最近数据。");
     expect(source).toContain("课表加载失败，请重试。");
     expect(source).toContain("重试");
+    expect(pageSource).toContain("ScheduleReleasePanel");
+    expect(pageSource).toContain("getParentScheduleRelease");
+    expect(panelSource).toContain("开放接下来两周");
+    expect(panelSource).toContain("确认开放接下来两周课表给家长预约吗？");
+    expect(panelSource).toContain("clearBrowserScheduleCache();");
   });
 });

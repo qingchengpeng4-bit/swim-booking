@@ -1,16 +1,19 @@
 import Link from "next/link";
+import { ScheduleReleasePanel } from "@/components/coach/ScheduleReleasePanel";
 import { CoachScheduleClient } from "@/components/coach/CoachScheduleClient";
 import { PageHeader } from "@/components/common/PageHeader";
 import { WeekNavigator } from "@/components/parent/WeekNavigator";
 import { buildCoachWeeklySchedule } from "@/lib/coach-schedule";
 import { getDateKey, getScheduleWeek } from "@/lib/schedule";
+import { getParentScheduleRelease } from "@/services/schedule-release.service";
 
 type CoachSchedulePageProps = {
   week?: string;
 };
 
-export function CoachSchedulePage({ week }: CoachSchedulePageProps) {
+export async function CoachSchedulePage({ week }: CoachSchedulePageProps) {
   const scheduleWeek = getScheduleWeek(week, new Date(), "/coach/calendar");
+  const releasedUntil = await getParentScheduleRelease();
   const shellSchedule = buildCoachWeeklySchedule({
     slots: [],
     weekStart: scheduleWeek.weekStart,
@@ -36,6 +39,8 @@ export function CoachSchedulePage({ week }: CoachSchedulePageProps) {
           </Link>
         </div>
       </div>
+
+      <ScheduleReleasePanel releasedUntil={releasedUntil} />
 
       <div className="mt-5">
         <WeekNavigator

@@ -1,12 +1,18 @@
 import { CourseType } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/parent/weekly-schedule/route";
+import { getParentScheduleRelease } from "@/services/schedule-release.service";
 import { getParentWeeklySlots } from "@/services/slot.service";
+
+vi.mock("@/services/schedule-release.service", () => ({
+  getParentScheduleRelease: vi.fn(),
+}));
 
 vi.mock("@/services/slot.service", () => ({
   getParentWeeklySlots: vi.fn(),
 }));
 
+const mockedGetParentScheduleRelease = vi.mocked(getParentScheduleRelease);
 const mockedGetParentWeeklySlots = vi.mocked(getParentWeeklySlots);
 
 function shanghaiDateAt(dateOnly: string, hour: number) {
@@ -16,10 +22,12 @@ function shanghaiDateAt(dateOnly: string, hour: number) {
 
 describe("parent weekly schedule API", () => {
   beforeEach(() => {
+    mockedGetParentScheduleRelease.mockReset();
     mockedGetParentWeeklySlots.mockReset();
   });
 
-  it("returns parent-safe schedule data without sensitive booking fields", async () => {
+  it("returns parent-safe schedule data inside the released range", async () => {
+    mockedGetParentScheduleRelease.mockResolvedValue("2026-07-14");
     mockedGetParentWeeklySlots.mockResolvedValue([
       {
         id: "slot-1",
@@ -41,20 +49,49 @@ describe("parent weekly schedule API", () => {
     const serialized = JSON.stringify(body);
 
     expect(response.status).toBe(200);
+    expect(body.releasedUntil).toBe("2026-07-14");
     expect(body.schedule.rows).toHaveLength(9);
     expect(body.schedule.rows[0].cells[0]).toMatchObject({
-      title: "可加入",
       subtitle: "1v2 1/2",
       href: "/parent/slots/slot-1",
     });
+    expect(mockedGetParentWeeklySlots).toHaveBeenCalledWith(expect.any(Date), expect.any(Date), "2026-07-14");
     expect(serialized).not.toContain("13800000000");
     expect(serialized).not.toContain("private note");
     expect(serialized).not.toContain("createdAt");
     expect(serialized).not.toContain("cancelReason");
   });
 
+  it("returns an unreleased response when no release setting exists", async () => {
+    mockedGetParentScheduleRelease.mockResolvedValue(null);
+
+    const response = await GET(new Request("http://localhost/api/parent/weekly-schedule?week=2026-07-06"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      schedule: null,
+      releasedUntil: null,
+      message: "这周课表暂未开放，请等待教练开放。",
+    });
+    expect(mockedGetParentWeeklySlots).not.toHaveBeenCalled();
+  });
+
+  it("returns an unreleased response for a week beyond the released range", async () => {
+    mockedGetParentScheduleRelease.mockResolvedValue("2026-07-14");
+
+    const response = await GET(new Request("http://localhost/api/parent/weekly-schedule?week=2026-07-20"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.schedule).toBeNull();
+    expect(body.message).toBe("这周课表暂未开放，请等待教练开放。");
+    expect(mockedGetParentWeeklySlots).not.toHaveBeenCalled();
+  });
+
   it("returns a stable error response without exposing implementation details", async () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mockedGetParentScheduleRelease.mockResolvedValue("2026-07-14");
     mockedGetParentWeeklySlots.mockRejectedValue(new Error("raw database host detail"));
 
     const response = await GET(new Request("http://localhost/api/parent/weekly-schedule?week=2026-07-06"));

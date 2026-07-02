@@ -7,6 +7,7 @@ import { canCancelActiveBooking, canJoinSlot } from "@/lib/booking-rules";
 import { toParentBookingView } from "@/lib/privacy-rules";
 import { isDatabaseConnectionError, isRetryableTransactionError } from "@/lib/prisma-errors";
 import { canCoachAddBookingByTime, canParentBookByTime, canParentCancelByTime } from "@/lib/slot-time-rules";
+import { getParentScheduleRelease, isSlotReleasedForParent } from "@/services/schedule-release.service";
 
 export type CreateBookingInput = {
   slotId: string;
@@ -52,6 +53,11 @@ async function createParentBookingOnce(input: CreateBookingInput) {
 
     if (!canParentBookByTime(slot)) {
       throw new BusinessError(APP_ERRORS.SLOT_ALREADY_STARTED);
+    }
+
+    const releasedUntil = await getParentScheduleRelease(tx);
+    if (!isSlotReleasedForParent(slot.startAt, releasedUntil)) {
+      throw new BusinessError(APP_ERRORS.SLOT_NOT_RELEASED);
     }
 
     const duplicate = await tx.booking.findFirst({

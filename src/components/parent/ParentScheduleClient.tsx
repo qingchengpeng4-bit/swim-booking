@@ -22,6 +22,12 @@ type LoadState =
       isRefreshing: boolean;
     }
   | {
+      status: "unreleased";
+      schedule: null;
+      message: string;
+      releasedUntil: string | null;
+    }
+  | {
       status: "error";
       schedule: null;
       error: string;
@@ -81,6 +87,16 @@ export function ParentScheduleClient({ weekStartKey }: ParentScheduleClientProps
         });
         const data = await response.json().catch(() => null);
 
+        if (response.ok && data?.schedule === null) {
+          setState({
+            status: "unreleased",
+            schedule: null,
+            message: data?.message ?? "这周课表暂未开放，请等待教练开放。",
+            releasedUntil: data?.releasedUntil ?? null,
+          });
+          return;
+        }
+
         if (!response.ok || !data?.schedule) {
           throw new Error(data?.error || "课表加载失败，请重试。");
         }
@@ -128,6 +144,15 @@ export function ParentScheduleClient({ weekStartKey }: ParentScheduleClientProps
         >
           重试
         </button>
+      </section>
+    );
+  }
+
+  if (state.status === "unreleased") {
+    return (
+      <section className="rounded-xl border border-sky-100 bg-sky-50/70 p-8 text-center text-sm text-sky-800 shadow-sm">
+        <p className="text-base font-semibold text-sky-950">{state.message}</p>
+        {state.releasedUntil ? <p className="mt-2 text-sky-700">当前家长课表已开放到：{state.releasedUntil}</p> : null}
       </section>
     );
   }
