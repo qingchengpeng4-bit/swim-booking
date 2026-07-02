@@ -78,7 +78,11 @@ function getStudentNames(slot: CoachScheduleSlotSummary) {
     .filter(Boolean);
 }
 
-function cellForSlot(slot: CoachScheduleSlotSummary, now: Date): Omit<CoachScheduleCell, "key"> {
+function getCoachSlotHref(slotId: string, returnTo: string) {
+  return `/coach/slots/${slotId}?returnTo=${encodeURIComponent(returnTo)}`;
+}
+
+function cellForSlot(slot: CoachScheduleSlotSummary, now: Date, returnTo: string): Omit<CoachScheduleCell, "key"> {
   if (slot.status === "CLOSED" || slot.status === "CANCELLED") {
     return {
       slotId: slot.id,
@@ -109,7 +113,7 @@ function cellForSlot(slot: CoachScheduleSlotSummary, now: Date): Omit<CoachSched
       title: "空闲",
       subtitle: "可预约",
       tone: "green",
-      href: `/coach/slots/${slot.id}`,
+      href: getCoachSlotHref(slot.id, returnTo),
     };
   }
 
@@ -121,7 +125,7 @@ function cellForSlot(slot: CoachScheduleSlotSummary, now: Date): Omit<CoachSched
       title: courseText,
       subtitle: `${activeNames[0] ?? "已预约"}${started ? " · 已过期" : ""}`,
       tone: started ? "gray" : "red",
-      href: `/coach/slots/${slot.id}`,
+      href: getCoachSlotHref(slot.id, returnTo),
     };
   }
 
@@ -138,7 +142,7 @@ function cellForSlot(slot: CoachScheduleSlotSummary, now: Date): Omit<CoachSched
         ? `已满${started ? " · 已过期" : ""}`
         : `${namesText}${started ? " · 已过期" : ""}`,
     tone: started ? "gray" : full ? "red" : "green",
-    href: `/coach/slots/${slot.id}`,
+    href: getCoachSlotHref(slot.id, returnTo),
   };
 }
 
@@ -154,6 +158,7 @@ export function buildCoachWeeklySchedule({
   now?: Date;
 }): CoachWeeklySchedule {
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+  const returnTo = `/coach/calendar?week=${getDateKey(weekStart)}`;
   const slotMap = new Map<string, CoachScheduleSlotSummary>();
 
   for (const slot of slots) {
@@ -189,7 +194,7 @@ export function buildCoachWeeklySchedule({
 
         return {
           key,
-          ...cellForSlot(slot, now),
+          ...cellForSlot(slot, now, returnTo),
         };
       }),
     })),

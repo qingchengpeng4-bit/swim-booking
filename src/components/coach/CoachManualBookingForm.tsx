@@ -16,9 +16,10 @@ const COURSE_LABELS: Record<CourseTypeValue, string> = {
 type CoachManualBookingFormProps = {
   slotId: string;
   lockedCourseType: CourseTypeValue | null;
+  returnTo?: string;
 };
 
-export function CoachManualBookingForm({ slotId, lockedCourseType }: CoachManualBookingFormProps) {
+export function CoachManualBookingForm({ slotId, lockedCourseType, returnTo }: CoachManualBookingFormProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -60,7 +61,10 @@ export function CoachManualBookingForm({ slotId, lockedCourseType }: CoachManual
       clearBrowserScheduleCache();
       setSuccess(true);
       setTimeout(() => {
-        router.push(`/coach/slots/${slotId}`);
+        const detailHref = returnTo
+          ? `/coach/slots/${slotId}?returnTo=${encodeURIComponent(returnTo)}`
+          : `/coach/slots/${slotId}`;
+        router.push(detailHref);
         router.refresh();
       }, 800);
     } catch {

@@ -1,4 +1,4 @@
-import { BookingStatus, CourseType } from "@prisma/client";
+﻿import { BookingStatus, CourseType } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import { buildCoachWeeklySchedule, type CoachScheduleSlotSummary } from "@/lib/coach-schedule";
 import { SCHEDULE_HOURS } from "@/lib/schedule";
@@ -31,6 +31,10 @@ function build(slots: CoachScheduleSlotSummary[], now = shanghaiDateAt("2026-07-
   });
 }
 
+function coachSlotHref(slotId: string) {
+  return `/coach/slots/${slotId}?returnTo=${encodeURIComponent("/coach/calendar?week=2026-07-06")}`;
+}
+
 describe("coach weekly schedule", () => {
   it("builds nine rows from 12:00 to 20:00 without a 21:00 row", () => {
     const schedule = build([]);
@@ -52,7 +56,7 @@ describe("coach weekly schedule", () => {
         courseType: CourseType.ONE_TO_ONE,
         activeCount: 1,
         capacity: 1,
-        bookings: [{ studentName: "营业外学员", status: BookingStatus.ACTIVE }],
+        bookings: [{ studentName: "Off Hour Student", status: BookingStatus.ACTIVE }],
       }),
     ]);
     const serialized = JSON.stringify(schedule);
@@ -61,7 +65,7 @@ describe("coach weekly schedule", () => {
     expect(schedule.rows.map((row) => row.timeLabel)).toEqual(SCHEDULE_HOURS.map((hour) => `${hour}:00`));
     expect(schedule.rows.some((row) => row.timeLabel === "10:00")).toBe(false);
     expect(serialized).not.toContain("off-hour");
-    expect(serialized).not.toContain("营业外学员");
+    expect(serialized).not.toContain("Off Hour Student");
   });
 
   it("shows today future empty slots as bookable", () => {
@@ -80,7 +84,7 @@ describe("coach weekly schedule", () => {
       title: "空闲",
       subtitle: "可预约",
       tone: "green",
-      href: "/coach/slots/today-future",
+      href: coachSlotHref("today-future"),
     });
   });
 
@@ -114,7 +118,7 @@ describe("coach weekly schedule", () => {
           courseType: CourseType.ONE_TO_ONE,
           activeCount: 1,
           capacity: 1,
-          bookings: [{ studentName: "李四", status: BookingStatus.ACTIVE }],
+          bookings: [{ studentName: "Student Li", status: BookingStatus.ACTIVE }],
         }),
       ],
       shanghaiDateAt("2026-07-06", 15),
@@ -122,9 +126,9 @@ describe("coach weekly schedule", () => {
 
     expect(schedule.rows[3].cells[0]).toMatchObject({
       title: "1v1",
-      subtitle: "李四 · 已过期",
+      subtitle: "Student Li · 已过期",
       tone: "gray",
-      href: "/coach/slots/started-booked",
+      href: coachSlotHref("started-booked"),
     });
   });
 
@@ -141,7 +145,7 @@ describe("coach weekly schedule", () => {
       title: "空闲",
       subtitle: "可预约",
       tone: "green",
-      href: "/coach/slots/future-empty",
+      href: coachSlotHref("future-empty"),
     });
   });
 
@@ -172,18 +176,18 @@ describe("coach weekly schedule", () => {
         courseType: CourseType.ONE_TO_TWO,
         activeCount: 1,
         capacity: 2,
-        bookings: [{ studentName: "张三", status: BookingStatus.ACTIVE }],
+        bookings: [{ studentName: "Student Zhang", status: BookingStatus.ACTIVE }],
       }),
     ]);
     const serialized = JSON.stringify(schedule);
 
     expect(schedule.rows[1].cells[0]).toMatchObject({
       title: "1v2 1/2",
-      subtitle: "张三",
+      subtitle: "Student Zhang",
       tone: "green",
-      href: "/coach/slots/one-to-two",
+      href: coachSlotHref("one-to-two"),
     });
-    expect(serialized).toContain("张三");
+    expect(serialized).toContain("Student Zhang");
     expect(serialized).not.toContain("contactPhone");
     expect(serialized).not.toContain("remark");
     expect(serialized).not.toContain("19900000001");

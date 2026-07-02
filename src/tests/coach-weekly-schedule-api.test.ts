@@ -70,7 +70,7 @@ describe("coach weekly schedule API", () => {
     expect(body.schedule.rows[0].cells[0]).toMatchObject({
       title: "1v2 1/2",
       subtitle: "Student A",
-      href: "/coach/slots/slot-1",
+      href: `/coach/slots/slot-1?returnTo=${encodeURIComponent("/coach/calendar?week=2026-07-06")}`,
     });
     expect(serialized).toContain("Student A");
     expect(serialized).not.toContain("13800000000");
@@ -97,3 +97,4 @@ describe("coach weekly schedule API", () => {
     expect(panelSource).toContain("clearBrowserScheduleCache();");
   });
 });
+

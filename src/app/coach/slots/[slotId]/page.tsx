@@ -14,14 +14,23 @@ type CoachSlotPageProps = {
   params: Promise<{
     slotId: string;
   }>;
+  searchParams?: Promise<{
+    returnTo?: string;
+  }>;
 };
 
-export default async function CoachSlotPage({ params }: CoachSlotPageProps) {
+function getCoachCalendarReturnTo(returnTo?: string) {
+  return returnTo?.startsWith("/coach/calendar") ? returnTo : "/coach/calendar";
+}
+
+export default async function CoachSlotPage({ params, searchParams }: CoachSlotPageProps) {
   if (!(await isCoachAuthenticated())) {
     redirect("/coach/login");
   }
 
   const { slotId } = await params;
+  const { returnTo } = (await searchParams) ?? {};
+  const scheduleHref = getCoachCalendarReturnTo(returnTo);
   const slot = await getCoachSlotDetail(slotId);
 
   if (!slot) {
@@ -36,7 +45,7 @@ export default async function CoachSlotPage({ params }: CoachSlotPageProps) {
       <PageHeader title="时间段详情" />
 
       {/* Back link */}
-      <ScheduleBackButton fallbackHref="/coach/calendar" />
+      <ScheduleBackButton fallbackHref={scheduleHref} useHistory={false} />
 
       {/* Info card */}
       <section className="rounded-xl border border-cyan-200 bg-gradient-to-b from-cyan-50 to-white p-6 shadow-sm">
@@ -58,7 +67,7 @@ export default async function CoachSlotPage({ params }: CoachSlotPageProps) {
         {slot.canBook ? (
           <PendingNavigationLink
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-sky-600 hover:to-cyan-600 hover:shadow-md active:scale-[0.98]"
-            href={`/coach/slots/${slot.id}/book`}
+            href={`/coach/slots/${slot.id}/book?returnTo=${encodeURIComponent(scheduleHref)}`}
             pendingLabel="正在打开添加预约页面..."
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

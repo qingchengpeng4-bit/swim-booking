@@ -12,14 +12,23 @@ type CoachManualBookingPageProps = {
   params: Promise<{
     slotId: string;
   }>;
+  searchParams?: Promise<{
+    returnTo?: string;
+  }>;
 };
 
-export default async function CoachManualBookingPage({ params }: CoachManualBookingPageProps) {
+function getCoachCalendarReturnTo(returnTo?: string) {
+  return returnTo?.startsWith("/coach/calendar") ? returnTo : "/coach/calendar";
+}
+
+export default async function CoachManualBookingPage({ params, searchParams }: CoachManualBookingPageProps) {
   if (!(await isCoachAuthenticated())) {
     redirect("/coach/login");
   }
 
   const { slotId } = await params;
+  const { returnTo } = (await searchParams) ?? {};
+  const scheduleHref = getCoachCalendarReturnTo(returnTo);
   const slot = await getCoachSlotDetail(slotId);
 
   if (!slot) {
@@ -31,7 +40,7 @@ export default async function CoachManualBookingPage({ params }: CoachManualBook
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <PageHeader title="手动添加预约" description="教练可为家长电话或线下沟通后的课程补录预约。" />
-      <Link className="text-sm text-blue-600" href={`/coach/slots/${slot.id}`}>
+      <Link className="text-sm text-blue-600" href={`/coach/slots/${slot.id}?returnTo=${encodeURIComponent(scheduleHref)}`}>
         返回时间段详情
       </Link>
 
@@ -47,7 +56,7 @@ export default async function CoachManualBookingPage({ params }: CoachManualBook
 
       <section className="mt-4">
         {slot.canBook ? (
-          <CoachManualBookingForm slotId={slot.id} lockedCourseType={lockedCourseType} />
+          <CoachManualBookingForm slotId={slot.id} lockedCourseType={lockedCourseType} returnTo={scheduleHref} />
         ) : (
           <p className="rounded border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
             当前时间段不可添加预约。

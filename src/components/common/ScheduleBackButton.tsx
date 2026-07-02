@@ -7,9 +7,10 @@ import { LoadingDots, LoadingSpinner } from "@/components/ui/LoadingState";
 type ScheduleBackButtonProps = {
   fallbackHref: string;
   label?: string;
+  useHistory?: boolean;
 };
 
-export function ScheduleBackButton({ fallbackHref, label = "返回课表" }: ScheduleBackButtonProps) {
+export function ScheduleBackButton({ fallbackHref, label = "返回课表", useHistory = true }: ScheduleBackButtonProps) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
 
@@ -17,7 +18,7 @@ export function ScheduleBackButton({ fallbackHref, label = "返回课表" }: Sch
     if (pending) return;
     setPending(true);
 
-    if (typeof window !== "undefined" && window.history.length > 1) {
+    if (useHistory && typeof window !== "undefined" && window.history.length > 1) {
       router.back();
       return;
     }
