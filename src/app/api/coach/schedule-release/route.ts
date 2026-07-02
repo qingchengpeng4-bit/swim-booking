@@ -1,7 +1,7 @@
 import { isCoachAuthenticated } from "@/lib/coach-auth";
 import { revalidateScheduleViews } from "@/lib/schedule-cache";
-import { releaseNextParentScheduleWindow } from "@/services/schedule-release.service";
 import { toErrorResponse } from "@/services/errors";
+import { releaseNextParentScheduleWindow } from "@/services/schedule-release.service";
 
 export const dynamic = "force-dynamic";
 

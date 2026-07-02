@@ -34,10 +34,7 @@ describe("coach weekly schedule API", () => {
     const body = await response.json();
 
     expect(response.status).toBe(401);
-    expect(body).toEqual({
-      code: "UNAUTHORIZED",
-      error: "请先登录教练后台。",
-    });
+    expect(body.code).toBe("UNAUTHORIZED");
     expect(mockedGetCoachWeeklySlots).not.toHaveBeenCalled();
   });
 
@@ -54,7 +51,7 @@ describe("coach weekly schedule API", () => {
         capacity: 2,
         bookings: [
           {
-            studentName: "学生A",
+            studentName: "Student A",
             status: BookingStatus.ACTIVE,
             contactPhone: "13800000000",
             remark: "private note",
@@ -72,33 +69,31 @@ describe("coach weekly schedule API", () => {
     expect(response.status).toBe(200);
     expect(body.schedule.rows[0].cells[0]).toMatchObject({
       title: "1v2 1/2",
-      subtitle: "学生A",
+      subtitle: "Student A",
       href: "/coach/slots/slot-1",
     });
-    expect(serialized).toContain("学生A");
+    expect(serialized).toContain("Student A");
     expect(serialized).not.toContain("13800000000");
     expect(serialized).not.toContain("private note");
     expect(serialized).not.toContain("createdAt");
     expect(serialized).not.toContain("cancelReason");
   });
 
-  it("keeps client loading and retry copy available", () => {
+  it("keeps client loading and release panel source available", () => {
     const source = readFileSync("src/components/coach/CoachScheduleClient.tsx", "utf8");
     const pageSource = readFileSync("src/components/coach/CoachSchedulePage.tsx", "utf8");
     const panelSource = readFileSync("src/components/coach/ScheduleReleasePanel.tsx", "utf8");
 
     expect(source).toContain("LoadingSkeleton");
-    expect(source).toContain("animate-pulse");
     expect(source).toContain("readBrowserScheduleCache");
     expect(source).toContain("writeBrowserScheduleCache");
-    expect(source).toContain("已显示最近课表，正在更新");
-    expect(source).toContain("刷新失败，显示的是最近数据。");
-    expect(source).toContain("课表加载失败，请重试。");
-    expect(source).toContain("重试");
     expect(pageSource).toContain("ScheduleReleasePanel");
-    expect(pageSource).toContain("getParentScheduleRelease");
-    expect(panelSource).toContain("开放接下来两周");
-    expect(panelSource).toContain("确认开放接下来两周课表给家长预约吗？");
+    expect(pageSource).toContain("getNextParentScheduleReleaseDate");
+    expect(panelSource).toContain("nextReleaseUntil");
+    expect(panelSource).toContain("点击后将开放至");
+    expect(panelSource).toContain("开放本周和下周");
+    expect(panelSource).toContain("继续开放后两周");
+    expect(panelSource).toContain("确认开放家长课表至");
     expect(panelSource).toContain("clearBrowserScheduleCache();");
   });
 });

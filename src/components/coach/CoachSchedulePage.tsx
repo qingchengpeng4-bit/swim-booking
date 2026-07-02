@@ -5,7 +5,11 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { WeekNavigator } from "@/components/parent/WeekNavigator";
 import { buildCoachWeeklySchedule } from "@/lib/coach-schedule";
 import { getDateKey, getScheduleWeek } from "@/lib/schedule";
-import { getParentScheduleRelease } from "@/services/schedule-release.service";
+import {
+  getLatestGeneratedSlotDate,
+  getNextParentScheduleReleaseDate,
+  getParentScheduleRelease,
+} from "@/services/schedule-release.service";
 
 type CoachSchedulePageProps = {
   week?: string;
@@ -13,7 +17,14 @@ type CoachSchedulePageProps = {
 
 export async function CoachSchedulePage({ week }: CoachSchedulePageProps) {
   const scheduleWeek = getScheduleWeek(week, new Date(), "/coach/calendar");
-  const releasedUntil = await getParentScheduleRelease();
+  const [releasedUntil, latestSlotDate] = await Promise.all([
+    getParentScheduleRelease(),
+    getLatestGeneratedSlotDate(),
+  ]);
+  const nextReleaseUntil = getNextParentScheduleReleaseDate({
+    currentReleasedUntil: releasedUntil,
+    latestSlotDate,
+  });
   const shellSchedule = buildCoachWeeklySchedule({
     slots: [],
     weekStart: scheduleWeek.weekStart,
@@ -40,7 +51,7 @@ export async function CoachSchedulePage({ week }: CoachSchedulePageProps) {
         </div>
       </div>
 
-      <ScheduleReleasePanel releasedUntil={releasedUntil} />
+      <ScheduleReleasePanel releasedUntil={releasedUntil} nextReleaseUntil={nextReleaseUntil} />
 
       <div className="mt-5">
         <WeekNavigator

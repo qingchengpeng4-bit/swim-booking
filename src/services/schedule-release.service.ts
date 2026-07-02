@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export const PARENT_SCHEDULE_RELEASED_UNTIL_KEY = "parent_schedule_released_until";
-const RELEASE_DAYS = 14;
+const RELEASE_WEEKS_IN_DAYS = 14;
 const SHANGHAI_TIME_ZONE = "Asia/Shanghai";
 
 type DbClient = typeof prisma | Prisma.TransactionClient;
@@ -29,6 +29,31 @@ function addShanghaiDays(dateKey: string, days: number) {
 
 function compareDateKeys(left: string, right: string) {
   return left.localeCompare(right);
+}
+
+function getShanghaiWeekday(dateKey: string) {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: SHANGHAI_TIME_ZONE,
+    weekday: "short",
+  }).format(shanghaiDateAt(dateKey, 12));
+
+  const weekdays: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+
+  return weekdays[weekday] ?? 0;
+}
+
+export function getShanghaiWeekSunday(dateKey: string) {
+  const weekday = getShanghaiWeekday(dateKey);
+  const daysUntilSunday = weekday === 0 ? 0 : 7 - weekday;
+  return addShanghaiDays(dateKey, daysUntilSunday);
 }
 
 export function getShanghaiDayEnd(dateKey: string) {
@@ -73,8 +98,9 @@ export function getNextParentScheduleReleaseDate({
   now?: Date;
 }) {
   const today = getShanghaiDateKey(now);
-  const baseDate = currentReleasedUntil && compareDateKeys(currentReleasedUntil, today) >= 0 ? currentReleasedUntil : today;
-  const nextDate = addShanghaiDays(baseDate, RELEASE_DAYS);
+  const hasCurrentFutureRelease = currentReleasedUntil && compareDateKeys(currentReleasedUntil, today) >= 0;
+  const baseDate = hasCurrentFutureRelease ? getShanghaiWeekSunday(currentReleasedUntil) : getShanghaiWeekSunday(today);
+  const nextDate = addShanghaiDays(baseDate, hasCurrentFutureRelease ? RELEASE_WEEKS_IN_DAYS : 7);
 
   if (latestSlotDate && compareDateKeys(nextDate, latestSlotDate) > 0) {
     return latestSlotDate;
@@ -109,6 +135,11 @@ export async function releaseNextParentScheduleWindow(now = new Date()) {
 
   return {
     releasedUntil: nextReleasedUntil,
+    nextReleaseUntil: getNextParentScheduleReleaseDate({
+      currentReleasedUntil: nextReleasedUntil,
+      latestSlotDate,
+      now,
+    }),
     previousReleasedUntil: currentReleasedUntil,
     latestSlotDate,
   };

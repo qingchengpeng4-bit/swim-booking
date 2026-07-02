@@ -6,40 +6,50 @@ import {
 } from "@/services/schedule-release.service";
 
 describe("schedule release rules", () => {
-  const now = new Date("2026-07-01T10:00:00+08:00");
+  const now = new Date("2026-07-02T10:00:00+08:00");
 
   it("treats no setting as not released for parent booking", () => {
     expect(isSlotReleasedForParent(new Date("2026-07-02T12:00:00+08:00"), null)).toBe(false);
   });
 
-  it("opens the first window through today plus fourteen days", () => {
+  it("opens the first window through next Sunday", () => {
     expect(
       getNextParentScheduleReleaseDate({
         currentReleasedUntil: null,
         latestSlotDate: "2026-08-31",
         now,
       }),
-    ).toBe("2026-07-15");
+    ).toBe("2026-07-12");
   });
 
-  it("extends a future release date by fourteen days", () => {
+  it("extends a future Sunday release date by two full weeks", () => {
     expect(
       getNextParentScheduleReleaseDate({
-        currentReleasedUntil: "2026-07-14",
+        currentReleasedUntil: "2026-07-12",
         latestSlotDate: "2026-08-31",
         now,
       }),
-    ).toBe("2026-07-28");
+    ).toBe("2026-07-26");
   });
 
-  it("starts from today when the existing release date has expired", () => {
+  it("starts from the current week when the existing release date has expired", () => {
     expect(
       getNextParentScheduleReleaseDate({
         currentReleasedUntil: "2026-06-20",
         latestSlotDate: "2026-08-31",
         now,
       }),
-    ).toBe("2026-07-15");
+    ).toBe("2026-07-12");
+  });
+
+  it("aligns a non-Sunday release date to its week Sunday before extending two full weeks", () => {
+    expect(
+      getNextParentScheduleReleaseDate({
+        currentReleasedUntil: "2026-07-14",
+        latestSlotDate: "2026-08-31",
+        now,
+      }),
+    ).toBe("2026-08-02");
   });
 
   it("does not exceed the latest generated slot date", () => {

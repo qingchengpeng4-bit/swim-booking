@@ -41,10 +41,11 @@ describe("coach schedule release API", () => {
     expect(mockedReleaseNextParentScheduleWindow).not.toHaveBeenCalled();
   });
 
-  it("releases the next two weeks and refreshes schedule cache", async () => {
+  it("releases the next schedule window and refreshes schedule cache", async () => {
     mockedIsCoachAuthenticated.mockResolvedValue(true);
     mockedReleaseNextParentScheduleWindow.mockResolvedValue({
-      releasedUntil: "2026-07-15",
+      releasedUntil: "2026-07-12",
+      nextReleaseUntil: "2026-07-26",
       previousReleasedUntil: null,
       latestSlotDate: "2026-08-31",
     });
@@ -53,7 +54,8 @@ describe("coach schedule release API", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.releasedUntil).toBe("2026-07-15");
+    expect(body.releasedUntil).toBe("2026-07-12");
+    expect(body.nextReleaseUntil).toBe("2026-07-26");
     expect(mockedReleaseNextParentScheduleWindow).toHaveBeenCalledOnce();
     expect(mockedRevalidateScheduleViews).toHaveBeenCalledOnce();
   });
