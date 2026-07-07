@@ -39,6 +39,7 @@ export function WeeklyBlockedSlotsPanel({ systemRules, customRules }: WeeklyBloc
   const [label, setLabel] = useState("大班课");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   async function addRule(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -101,79 +102,92 @@ export function WeeklyBlockedSlotsPanel({ systemRules, customRules }: WeeklyBloc
 
   return (
     <section className="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div>
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 text-left"
+        aria-expanded={isExpanded}
+        onClick={() => setIsExpanded((current) => !current)}
+      >
         <h2 className="text-base font-semibold text-gray-950">固定不可预约时间</h2>
-        <p className="mt-1 text-sm text-gray-600">系统固定时间只展示；自定义时间可新增或删除。</p>
-      </div>
+        <span className="text-lg font-semibold text-gray-500" aria-hidden="true">
+          {isExpanded ? "⌃" : "⌄"}
+        </span>
+      </button>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-          <h3 className="text-sm font-semibold text-gray-900">系统固定时间</h3>
-          <ul className="mt-2 space-y-2 text-sm text-gray-700">
-            {systemRules.map((rule) => (
-              <li key={`${rule.weekday}-${rule.hour}`} className="rounded bg-white px-3 py-2">
-                {getWeekdayText(rule.weekday)} {getHourRangeText(rule.hour)} {rule.label}
-              </li>
-            ))}
-          </ul>
-        </div>
+      {isExpanded ? (
+        <>
+          <p className="mt-1 text-sm text-gray-600">系统固定时间只展示；自定义时间可新增或删除。</p>
 
-        <div className="rounded-lg border border-sky-100 bg-sky-50/60 p-3">
-          <h3 className="text-sm font-semibold text-gray-900">自定义固定不可预约时间</h3>
-          {rules.length === 0 ? (
-            <p className="mt-2 rounded bg-white px-3 py-2 text-sm text-gray-500">暂无自定义规则。</p>
-          ) : (
-            <ul className="mt-2 space-y-2 text-sm text-gray-700">
-              {rules.map((rule) => (
-                <li key={rule.id} className="flex items-center justify-between gap-2 rounded bg-white px-3 py-2">
-                  <span>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+              <h3 className="text-sm font-semibold text-gray-900">系统固定时间</h3>
+              <ul className="mt-2 space-y-2 text-sm text-gray-700">
+                {systemRules.map((rule) => (
+                  <li key={`${rule.weekday}-${rule.hour}`} className="rounded bg-white px-3 py-2">
                     {getWeekdayText(rule.weekday)} {getHourRangeText(rule.hour)} {rule.label}
-                  </span>
-                  <button
-                    className="rounded border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
-                    type="button"
-                    onClick={() => deleteRule(rule.id)}
-                  >
-                    删除
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-      <form className="mt-4 grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 sm:grid-cols-[1fr_1fr_1fr_auto]" onSubmit={addRule}>
-        <label className="text-sm">
-          <span className="font-medium text-gray-700">星期</span>
-          <select className="mt-1 w-full rounded border border-gray-300 px-3 py-2" value={weekday} onChange={(event) => setWeekday(event.target.value)}>
-            {WEEKDAYS.map((day) => (
-              <option key={day} value={day}>
-                {getWeekdayText(day)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="font-medium text-gray-700">时间段</span>
-          <select className="mt-1 w-full rounded border border-gray-300 px-3 py-2" value={hour} onChange={(event) => setHour(event.target.value)}>
-            {SCHEDULE_HOURS.map((item) => (
-              <option key={item} value={item}>
-                {getHourRangeText(item)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="font-medium text-gray-700">名称</span>
-          <input className="mt-1 w-full rounded border border-gray-300 px-3 py-2" maxLength={20} value={label} onChange={(event) => setLabel(event.target.value)} />
-        </label>
-        <button className="self-end rounded bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-gray-300" disabled={submitting} type="submit">
-          {submitting ? "添加中..." : "添加"}
-        </button>
-      </form>
+            <div className="rounded-lg border border-sky-100 bg-sky-50/60 p-3">
+              <h3 className="text-sm font-semibold text-gray-900">自定义固定不可预约时间</h3>
+              {rules.length === 0 ? (
+                <p className="mt-2 rounded bg-white px-3 py-2 text-sm text-gray-500">暂无自定义规则。</p>
+              ) : (
+                <ul className="mt-2 space-y-2 text-sm text-gray-700">
+                  {rules.map((rule) => (
+                    <li key={rule.id} className="flex items-center justify-between gap-2 rounded bg-white px-3 py-2">
+                      <span>
+                        {getWeekdayText(rule.weekday)} {getHourRangeText(rule.hour)} {rule.label}
+                      </span>
+                      <button
+                        className="rounded border border-rose-200 px-2 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+                        type="button"
+                        onClick={() => deleteRule(rule.id)}
+                      >
+                        删除
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
 
-      {error ? <p className="mt-3 rounded border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
+          <form className="mt-4 grid gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 sm:grid-cols-[1fr_1fr_1fr_auto]" onSubmit={addRule}>
+            <label className="text-sm">
+              <span className="font-medium text-gray-700">星期</span>
+              <select className="mt-1 w-full rounded border border-gray-300 px-3 py-2" value={weekday} onChange={(event) => setWeekday(event.target.value)}>
+                {WEEKDAYS.map((day) => (
+                  <option key={day} value={day}>
+                    {getWeekdayText(day)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm">
+              <span className="font-medium text-gray-700">时间段</span>
+              <select className="mt-1 w-full rounded border border-gray-300 px-3 py-2" value={hour} onChange={(event) => setHour(event.target.value)}>
+                {SCHEDULE_HOURS.map((item) => (
+                  <option key={item} value={item}>
+                    {getHourRangeText(item)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm">
+              <span className="font-medium text-gray-700">名称</span>
+              <input className="mt-1 w-full rounded border border-gray-300 px-3 py-2" maxLength={20} value={label} onChange={(event) => setLabel(event.target.value)} />
+            </label>
+            <button className="self-end rounded bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-gray-300" disabled={submitting} type="submit">
+              {submitting ? "添加中..." : "添加"}
+            </button>
+          </form>
+
+          {error ? <p className="mt-3 rounded border border-rose-100 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p> : null}
+        </>
+      ) : null}
     </section>
   );
 }
