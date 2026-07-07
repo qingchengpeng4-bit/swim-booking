@@ -9,7 +9,7 @@ function shanghaiDateAt(dateOnly: string, hour: number) {
 }
 
 describe("weekly schedule", () => {
-  it("builds nine rows and seven day columns for a week", () => {
+  it("builds ten rows and seven day columns for a week", () => {
     const week = getScheduleWeek("2026-07-06", shanghaiDateAt("2026-06-30", 9));
     const schedule = buildWeeklySchedule({
       slots: [],
@@ -20,10 +20,11 @@ describe("weekly schedule", () => {
     });
 
     expect(schedule.days).toHaveLength(7);
-    expect(schedule.rows).toHaveLength(9);
-    expect(schedule.rows[0].timeLabel).toBe("12:00");
-    expect(schedule.rows[7].timeLabel).toBe("19:00");
-    expect(schedule.rows[8].timeLabel).toBe("20:00");
+    expect(schedule.rows).toHaveLength(10);
+    expect(schedule.rows[0].timeLabel).toBe("11:00");
+    expect(schedule.rows[1].timeLabel).toBe("12:00");
+    expect(schedule.rows[8].timeLabel).toBe("19:00");
+    expect(schedule.rows[9].timeLabel).toBe("20:00");
     expect(schedule.rows.some((row) => row.timeLabel === "21:00")).toBe(false);
     expect(schedule.rows[0].cells).toHaveLength(7);
   });
@@ -85,23 +86,23 @@ describe("weekly schedule", () => {
       ],
     });
 
-    expect(schedule.rows[0].cells[0]).toMatchObject({
+    expect(schedule.rows[1].cells[0]).toMatchObject({
       tone: "green",
       href: "/parent/slots/available",
     });
-    expect(schedule.rows[1].cells[0]).toMatchObject({
+    expect(schedule.rows[2].cells[0]).toMatchObject({
       subtitle: "1v3 2/3",
       tone: "green",
     });
-    expect(schedule.rows[2].cells[0]).toMatchObject({
+    expect(schedule.rows[3].cells[0]).toMatchObject({
       subtitle: "1v3 3/3",
       tone: "red",
     });
-    expect(schedule.rows[7].cells[1]).toMatchObject({
+    expect(schedule.rows[8].cells[1]).toMatchObject({
       tone: "gray",
       href: null,
     });
-    expect(schedule.rows[6].cells[3]).toMatchObject({
+    expect(schedule.rows[7].cells[3]).toMatchObject({
       title: "大班课",
       subtitle: "不可预约",
       tone: "gray",
@@ -149,15 +150,15 @@ describe("weekly schedule", () => {
     const serialized = JSON.stringify(schedule);
 
     expect(serialized).not.toContain("今日不可约");
-    expect(schedule.rows[4].cells[2]).toMatchObject({
+    expect(schedule.rows[5].cells[2]).toMatchObject({
       tone: "green",
       href: "/parent/slots/today-future",
     });
-    expect(schedule.rows[0].cells[2]).toMatchObject({
+    expect(schedule.rows[1].cells[2]).toMatchObject({
       tone: "gray",
       href: null,
     });
-    expect(schedule.rows[5].cells[2]).toMatchObject({
+    expect(schedule.rows[6].cells[2]).toMatchObject({
       subtitle: "1v2 1/2",
       tone: "green",
       href: "/parent/slots/today-joinable",

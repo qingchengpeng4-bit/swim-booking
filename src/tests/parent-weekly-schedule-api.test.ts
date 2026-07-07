@@ -50,8 +50,8 @@ describe("parent weekly schedule API", () => {
 
     expect(response.status).toBe(200);
     expect(body.releasedUntil).toBe("2026-07-14");
-    expect(body.schedule.rows).toHaveLength(9);
-    expect(body.schedule.rows[0].cells[0]).toMatchObject({
+    expect(body.schedule.rows).toHaveLength(10);
+    expect(body.schedule.rows[1].cells[0]).toMatchObject({
       subtitle: "1v2 1/2",
       href: "/parent/slots/slot-1",
     });

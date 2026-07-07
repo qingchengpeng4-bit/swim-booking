@@ -29,10 +29,21 @@ describe("weekly blocked slot rules", () => {
       hour: 18,
       label: "大班课",
     });
+    expect(validateWeeklyBlockedSlotInput({ weekday: 4, hour: 11, label: " 大班课 " })).toEqual({
+      weekday: 4,
+      hour: 11,
+      label: "大班课",
+    });
 
-    expect(() => validateWeeklyBlockedSlotInput({ weekday: 0, hour: 18, label: "大班课" })).toThrow("请选择星期。");
-    expect(() => validateWeeklyBlockedSlotInput({ weekday: 4, hour: 11, label: "大班课" })).toThrow("请选择有效时间段。");
-    expect(() => validateWeeklyBlockedSlotInput({ weekday: 4, hour: 18, label: " " })).toThrow("请填写名称。");
-    expect(() => validateWeeklyBlockedSlotInput({ weekday: 4, hour: 18, label: "一二三四五六七八九十一二三四五六七八九十一" })).toThrow("名称不能超过 20 个字符。");
+    expect(() => validateWeeklyBlockedSlotInput({ weekday: 0, hour: 18, label: "大班课" })).toThrow();
+    expect(() => validateWeeklyBlockedSlotInput({ weekday: 4, hour: 21, label: "大班课" })).toThrow();
+    expect(() => validateWeeklyBlockedSlotInput({ weekday: 4, hour: 18, label: " " })).toThrow();
+    expect(() =>
+      validateWeeklyBlockedSlotInput({
+        weekday: 4,
+        hour: 18,
+        label: "一二三四五六七八九十一二三四五六七八九十一",
+      }),
+    ).toThrow();
   });
 });

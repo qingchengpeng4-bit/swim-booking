@@ -12,7 +12,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "backfill:11am": "tsx scripts/backfill-11am-slots.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",

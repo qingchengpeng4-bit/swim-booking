@@ -8,21 +8,23 @@ function shanghaiDateAt(dateOnly: string, hour: number) {
 }
 
 describe("slot seed plan", () => {
-  it("generates nine one-hour slots per day in the configured date range", () => {
+  it("generates ten one-hour slots per day in the configured date range", () => {
     const plan = buildSlotSeedPlan(shanghaiDateAt("2026-06-30", 9), "2026-07-02");
 
-    expect(plan).toHaveLength(27);
-    expect(plan[0].startAt.toISOString()).toBe(shanghaiDateAt("2026-06-30", 12).toISOString());
-    expect(plan[7].startAt.toISOString()).toBe(shanghaiDateAt("2026-06-30", 19).toISOString());
-    expect(plan[8].startAt.toISOString()).toBe(shanghaiDateAt("2026-06-30", 20).toISOString());
+    expect(plan).toHaveLength(30);
+    expect(plan[0].startAt.toISOString()).toBe(shanghaiDateAt("2026-06-30", 11).toISOString());
+    expect(plan[1].startAt.toISOString()).toBe(shanghaiDateAt("2026-06-30", 12).toISOString());
+    expect(plan[8].startAt.toISOString()).toBe(shanghaiDateAt("2026-06-30", 19).toISOString());
+    expect(plan[9].startAt.toISOString()).toBe(shanghaiDateAt("2026-06-30", 20).toISOString());
     expect(plan.some((slot) => slot.startAt.getTime() === shanghaiDateAt("2026-06-30", 21).getTime())).toBe(false);
-    expect(plan[26].startAt.toISOString()).toBe(shanghaiDateAt("2026-07-02", 20).toISOString());
+    expect(plan[29].startAt.toISOString()).toBe(shanghaiDateAt("2026-07-02", 20).toISOString());
   });
 
   it("marks fixed group class times as closed slots", () => {
     expect(isFixedGroupClass(shanghaiDateAt("2026-06-30", 19))).toBe(true);
     expect(isFixedGroupClass(shanghaiDateAt("2026-07-04", 19))).toBe(true);
     expect(isFixedGroupClass(shanghaiDateAt("2026-07-05", 12))).toBe(true);
+    expect(isFixedGroupClass(shanghaiDateAt("2026-07-05", 11))).toBe(false);
     expect(isFixedGroupClass(shanghaiDateAt("2026-07-05", 13))).toBe(false);
   });
 

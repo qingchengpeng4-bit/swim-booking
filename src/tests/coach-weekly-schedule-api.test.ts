@@ -67,11 +67,11 @@ describe("coach weekly schedule API", () => {
     const serialized = JSON.stringify(body);
 
     expect(response.status).toBe(200);
-    expect(body.schedule.rows[0].cells[0]).toMatchObject({
+    expect(body.schedule.rows[1].cells[0]).toMatchObject({
       title: "1v2 1/2",
       href: `/coach/slots/slot-1?returnTo=${encodeURIComponent("/coach/calendar?week=2026-07-06")}`,
     });
-    expect(body.schedule.rows[0].cells[0].subtitle).toContain("Student A");
+    expect(body.schedule.rows[1].cells[0].subtitle).toContain("Student A");
     expect(serialized).toContain("Student A");
     expect(serialized).not.toContain("13800000000");
     expect(serialized).not.toContain("private note");

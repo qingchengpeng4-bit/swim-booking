@@ -1,7 +1,7 @@
 import { SlotStatus } from "@prisma/client";
 
 export const SLOT_SEED_END_DATE = "2026-08-31";
-export const SLOT_SEED_HOURS = [12, 13, 14, 15, 16, 17, 18, 19, 20] as const;
+export const SLOT_SEED_HOURS = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20] as const;
 
 export type SlotSeedItem = {
   startAt: Date;

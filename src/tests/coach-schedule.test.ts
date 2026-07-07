@@ -36,13 +36,13 @@ function coachSlotHref(slotId: string) {
 }
 
 describe("coach weekly schedule", () => {
-  it("builds nine rows from 12:00 to 20:00 without a 21:00 row", () => {
+  it("builds ten rows from 11:00 to 20:00 without a 21:00 row", () => {
     const schedule = build([]);
 
-    expect(schedule.rows).toHaveLength(9);
+    expect(schedule.rows).toHaveLength(10);
     expect(schedule.rows.map((row) => row.timeLabel)).toEqual(SCHEDULE_HOURS.map((hour) => `${hour}:00`));
-    expect(schedule.rows[0].timeLabel).toBe("12:00");
-    expect(schedule.rows[8].timeLabel).toBe("20:00");
+    expect(schedule.rows[0].timeLabel).toBe("11:00");
+    expect(schedule.rows[9].timeLabel).toBe("20:00");
     expect(schedule.rows.some((row) => row.timeLabel === "21:00")).toBe(false);
     expect(schedule.rows[0].cells).toHaveLength(7);
   });
@@ -61,7 +61,7 @@ describe("coach weekly schedule", () => {
     ]);
     const serialized = JSON.stringify(schedule);
 
-    expect(schedule.rows).toHaveLength(9);
+    expect(schedule.rows).toHaveLength(10);
     expect(schedule.rows.map((row) => row.timeLabel)).toEqual(SCHEDULE_HOURS.map((hour) => `${hour}:00`));
     expect(schedule.rows.some((row) => row.timeLabel === "10:00")).toBe(false);
     expect(serialized).not.toContain("off-hour");
@@ -80,7 +80,7 @@ describe("coach weekly schedule", () => {
       shanghaiDateAt("2026-07-06", 15),
     );
 
-    expect(schedule.rows[4].cells[0]).toMatchObject({
+    expect(schedule.rows[5].cells[0]).toMatchObject({
       title: "空闲",
       subtitle: "可预约",
       tone: "green",
@@ -100,7 +100,7 @@ describe("coach weekly schedule", () => {
       shanghaiDateAt("2026-07-06", 15),
     );
 
-    expect(schedule.rows[3].cells[0]).toMatchObject({
+    expect(schedule.rows[4].cells[0]).toMatchObject({
       title: "已过期",
       subtitle: "",
       tone: "gray",
@@ -124,7 +124,7 @@ describe("coach weekly schedule", () => {
       shanghaiDateAt("2026-07-06", 15),
     );
 
-    expect(schedule.rows[3].cells[0]).toMatchObject({
+    expect(schedule.rows[4].cells[0]).toMatchObject({
       title: "1v1",
       subtitle: "Student Li · 已过期",
       tone: "gray",
@@ -141,7 +141,7 @@ describe("coach weekly schedule", () => {
       }),
     ]);
 
-    expect(schedule.rows[0].cells[0]).toMatchObject({
+    expect(schedule.rows[1].cells[0]).toMatchObject({
       title: "空闲",
       subtitle: "可预约",
       tone: "green",
@@ -159,7 +159,7 @@ describe("coach weekly schedule", () => {
       }),
     ]);
 
-    expect(schedule.rows[7].cells[1]).toMatchObject({
+    expect(schedule.rows[8].cells[1]).toMatchObject({
       title: "大班课",
       subtitle: "不可预约",
       tone: "gray",
@@ -177,7 +177,7 @@ describe("coach weekly schedule", () => {
       }),
     ]);
 
-    expect(schedule.rows[6].cells[3]).toMatchObject({
+    expect(schedule.rows[7].cells[3]).toMatchObject({
       title: "大班课",
       subtitle: "不可预约",
       tone: "gray",
@@ -199,7 +199,7 @@ describe("coach weekly schedule", () => {
     ]);
     const serialized = JSON.stringify(schedule);
 
-    expect(schedule.rows[1].cells[0]).toMatchObject({
+    expect(schedule.rows[2].cells[0]).toMatchObject({
       title: "1v2 1/2",
       subtitle: "Student Zhang",
       tone: "green",
