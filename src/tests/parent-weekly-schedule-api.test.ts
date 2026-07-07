@@ -37,6 +37,7 @@ describe("parent weekly schedule API", () => {
         courseType: CourseType.ONE_TO_TWO,
         activeCount: 1,
         capacity: 2,
+        blockedLabel: "李力",
         contactPhone: "13800000000",
         remark: "private note",
         createdAt: "2026-07-01T00:00:00.000Z",
@@ -52,10 +53,12 @@ describe("parent weekly schedule API", () => {
     expect(body.releasedUntil).toBe("2026-07-14");
     expect(body.schedule.rows).toHaveLength(10);
     expect(body.schedule.rows[1].cells[0]).toMatchObject({
-      subtitle: "1v2 1/2",
-      href: "/parent/slots/slot-1",
+      title: "已占用",
+      subtitle: "不可预约",
+      href: null,
     });
     expect(mockedGetParentWeeklySlots).toHaveBeenCalledWith(expect.any(Date), expect.any(Date), "2026-07-14");
+    expect(serialized).not.toContain("李力");
     expect(serialized).not.toContain("13800000000");
     expect(serialized).not.toContain("private note");
     expect(serialized).not.toContain("createdAt");

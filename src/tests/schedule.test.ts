@@ -81,7 +81,7 @@ describe("weekly schedule", () => {
           courseType: null,
           activeCount: 0,
           capacity: null,
-          blockedLabel: "大班课",
+          blockedLabel: "李力",
         },
       ],
     });
@@ -103,11 +103,12 @@ describe("weekly schedule", () => {
       href: null,
     });
     expect(schedule.rows[7].cells[3]).toMatchObject({
-      title: "大班课",
+      title: "已占用",
       subtitle: "不可预约",
       tone: "gray",
       href: null,
     });
+    expect(JSON.stringify(schedule)).not.toContain("李力");
   });
 
   it("does not use a today-wide locked status for parent schedule cells", () => {

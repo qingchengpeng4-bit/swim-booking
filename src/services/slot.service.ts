@@ -24,6 +24,8 @@ import {
   getCoachWeeklyBlockedRules,
 } from "@/services/weekly-blocked-slots.service";
 
+const PARENT_BLOCKED_SLOT_LABEL = "已占用";
+
 type TxClient = Prisma.TransactionClient;
 
 export async function refreshSlotCourseState(tx: TxClient, slotId: string) {
@@ -284,10 +286,16 @@ export function getSlotPublicSummary(
   },
   activeCount: number,
   blockedLabel?: string | null,
+  options: { exposeBlockedLabel?: boolean } = {},
 ) {
   const displayStatus = calculateSlotDisplayStatus(slot, activeCount);
   const capacity = slot.capacity ?? (slot.courseType ? getCourseCapacity(slot.courseType) : null);
   const isWeeklyBlocked = Boolean(blockedLabel);
+  const safeBlockedLabel = isWeeklyBlocked
+    ? options.exposeBlockedLabel
+      ? blockedLabel
+      : PARENT_BLOCKED_SLOT_LABEL
+    : null;
 
   return {
     id: slot.id,
@@ -296,8 +304,8 @@ export function getSlotPublicSummary(
     startText: formatShanghaiDateTime(slot.startAt),
     endText: formatShanghaiDateTime(slot.endAt),
     status: isWeeklyBlocked ? "CLOSED" : displayStatus,
-    statusText: blockedLabel ?? slotStatusText(displayStatus),
-    blockedLabel: blockedLabel ?? null,
+    statusText: safeBlockedLabel ?? slotStatusText(displayStatus),
+    blockedLabel: safeBlockedLabel,
     courseType: slot.courseType,
     courseTypeText: slot.courseType ? COURSE_LABELS[slot.courseType] : "未锁定",
     activeCount,

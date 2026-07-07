@@ -53,7 +53,7 @@ export function toCoachSlotDetail(slot: PublicSlotLike, bookings: CoachBookingLi
   const activeCount = bookings.filter((booking) => booking.status === BookingStatus.ACTIVE).length;
 
   return {
-    ...getSlotPublicSummary(slot, activeCount, blockedLabel),
+    ...getSlotPublicSummary(slot, activeCount, blockedLabel, { exposeBlockedLabel: true }),
     bookings: bookings.map(toCoachBookingView),
   };
 }

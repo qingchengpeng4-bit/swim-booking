@@ -162,7 +162,7 @@ function cellForSlot(slot: ScheduleSlotSummary): Omit<ScheduleCell, "key"> {
   if (slot.blockedLabel) {
     return {
       slotId: slot.id,
-      title: slot.blockedLabel,
+      title: "已占用",
       subtitle: "不可预约",
       tone: "gray",
       href: null,

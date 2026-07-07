@@ -48,6 +48,17 @@ describe("privacy rules", () => {
     });
   });
 
+  it("hides custom blocked labels from parent slot detail but keeps them for coach detail", () => {
+    const parentDetail = toParentSlotDetail(slot, [], "李力");
+    const coachDetail = toCoachSlotDetail(slot, [], "李力");
+
+    expect(parentDetail.statusText).toBe("已占用");
+    expect(parentDetail.blockedLabel).toBe("已占用");
+    expect(JSON.stringify(parentDetail)).not.toContain("李力");
+    expect(coachDetail.statusText).toBe("李力");
+    expect(coachDetail.blockedLabel).toBe("李力");
+  });
+
   it("returns only parent-safe booking fields for my bookings", () => {
     const view = toParentBookingView(
       {

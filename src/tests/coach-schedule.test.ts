@@ -173,12 +173,12 @@ describe("coach weekly schedule", () => {
         id: "custom-blocked",
         startAt: shanghaiDateAt("2026-07-09", 18).toISOString(),
         endAt: shanghaiDateAt("2026-07-09", 19).toISOString(),
-        blockedLabel: "大班课",
+        blockedLabel: "李力",
       }),
     ]);
 
     expect(schedule.rows[7].cells[3]).toMatchObject({
-      title: "大班课",
+      title: "李力",
       subtitle: "不可预约",
       tone: "gray",
       href: null,
