@@ -17,6 +17,7 @@ export type CoachScheduleSlotSummary = {
   courseType: CourseType | null;
   activeCount: number;
   capacity: number | null;
+  blockedLabel?: string | null;
   bookings: CoachScheduleBooking[];
 };
 
@@ -83,6 +84,16 @@ function getCoachSlotHref(slotId: string, returnTo: string) {
 }
 
 function cellForSlot(slot: CoachScheduleSlotSummary, now: Date, returnTo: string): Omit<CoachScheduleCell, "key"> {
+  if (slot.blockedLabel) {
+    return {
+      slotId: slot.id,
+      title: slot.blockedLabel,
+      subtitle: "不可预约",
+      tone: "gray",
+      href: null,
+    };
+  }
+
   if (slot.status === "CLOSED" || slot.status === "CANCELLED") {
     return {
       slotId: slot.id,

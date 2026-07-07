@@ -72,6 +72,16 @@ describe("weekly schedule", () => {
           activeCount: 0,
           capacity: null,
         },
+        {
+          id: "custom-blocked",
+          startAt: shanghaiDateAt("2026-07-09", 18).toISOString(),
+          endAt: shanghaiDateAt("2026-07-09", 19).toISOString(),
+          status: "AVAILABLE",
+          courseType: null,
+          activeCount: 0,
+          capacity: null,
+          blockedLabel: "大班课",
+        },
       ],
     });
 
@@ -88,6 +98,12 @@ describe("weekly schedule", () => {
       tone: "red",
     });
     expect(schedule.rows[7].cells[1]).toMatchObject({
+      tone: "gray",
+      href: null,
+    });
+    expect(schedule.rows[6].cells[3]).toMatchObject({
+      title: "大班课",
+      subtitle: "不可预约",
       tone: "gray",
       href: null,
     });

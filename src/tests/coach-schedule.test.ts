@@ -167,6 +167,24 @@ describe("coach weekly schedule", () => {
     });
   });
 
+  it("shows custom weekly blocked slots with their label and without href", () => {
+    const schedule = build([
+      slot({
+        id: "custom-blocked",
+        startAt: shanghaiDateAt("2026-07-09", 18).toISOString(),
+        endAt: shanghaiDateAt("2026-07-09", 19).toISOString(),
+        blockedLabel: "大班课",
+      }),
+    ]);
+
+    expect(schedule.rows[6].cells[3]).toMatchObject({
+      title: "大班课",
+      subtitle: "不可预约",
+      tone: "gray",
+      href: null,
+    });
+  });
+
   it("shows student names without leaking phone or remark", () => {
     const schedule = build([
       slot({

@@ -5,11 +5,13 @@ import { createParentBooking, createCoachBooking, cancelParentBooking, cancelCoa
 import { getCoachSlotDetail, getOpenSlots, getParentSlotDetail } from "../services/slot.service";
 import { createBookingSchema } from "../lib/validators";
 import { PARENT_SCHEDULE_RELEASED_UNTIL_KEY } from "../services/schedule-release.service";
+import { addCoachWeeklyBlockedRule, COACH_WEEKLY_BLOCKED_SLOTS_KEY } from "../services/weekly-blocked-slots.service";
 
 const testRunId = `phase1-${Date.now()}`;
 const testPhonePrefix = "199";
 let testCoachId = "";
 let originalReleaseSetting: { value: string } | null = null;
+let originalWeeklyBlockedSetting: { value: string } | null = null;
 
 function shanghaiDateAt(dayOffset: number, hour: number, minute = 0) {
   const now = new Date();
@@ -29,6 +31,23 @@ function shanghaiDateAt(dayOffset: number, hour: number, minute = 0) {
 
 function phone(seed: number) {
   return `${testPhonePrefix}${String(seed).padStart(8, "0")}`;
+}
+
+function getShanghaiWeekday(date: Date) {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Shanghai",
+    weekday: "short",
+  }).format(date);
+
+  return {
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+    Sun: 7,
+  }[weekday] ?? -1;
 }
 
 async function createTestCoach() {
@@ -51,6 +70,20 @@ async function createTestCoach() {
 
 async function createFutureSlot(dayOffset = 7) {
   const startAt = shanghaiDateAt(dayOffset, 10);
+  const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
+
+  return prisma.slot.create({
+    data: {
+      coachId: testCoachId,
+      startAt,
+      endAt,
+      status: SlotStatus.OPEN,
+    },
+  });
+}
+
+async function createFutureSlotAt(dayOffset: number, hour: number) {
+  const startAt = shanghaiDateAt(dayOffset, hour);
   const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
 
   return prisma.slot.create({
@@ -158,6 +191,30 @@ async function setParentScheduleRelease(value: string | null) {
   });
 }
 
+async function setWeeklyBlockedRules(value: string | null) {
+  if (value === null) {
+    await prisma.systemSetting.deleteMany({
+      where: {
+        key: COACH_WEEKLY_BLOCKED_SLOTS_KEY,
+      },
+    });
+    return;
+  }
+
+  await prisma.systemSetting.upsert({
+    where: {
+      key: COACH_WEEKLY_BLOCKED_SLOTS_KEY,
+    },
+    create: {
+      key: COACH_WEEKLY_BLOCKED_SLOTS_KEY,
+      value,
+    },
+    update: {
+      value,
+    },
+  });
+}
+
 beforeAll(async () => {
   await cleanupTestData();
   originalReleaseSetting = await prisma.systemSetting.findUnique({
@@ -168,7 +225,16 @@ beforeAll(async () => {
       value: true,
     },
   });
+  originalWeeklyBlockedSetting = await prisma.systemSetting.findUnique({
+    where: {
+      key: COACH_WEEKLY_BLOCKED_SLOTS_KEY,
+    },
+    select: {
+      value: true,
+    },
+  });
   await setParentScheduleRelease("2099-12-31");
+  await setWeeklyBlockedRules(null);
   const coach = await createTestCoach();
   testCoachId = coach.id;
 });
@@ -176,10 +242,92 @@ beforeAll(async () => {
 afterAll(async () => {
   await cleanupTestData();
   await setParentScheduleRelease(originalReleaseSetting?.value ?? null);
+  await setWeeklyBlockedRules(originalWeeklyBlockedSetting?.value ?? null);
   await prisma.$disconnect();
 });
 
 describe.sequential("booking service core rules", () => {
+  it("rejects parent and coach booking for custom weekly blocked slots", async () => {
+    const slot = await createFutureSlotAt(8, 12);
+    await setWeeklyBlockedRules(JSON.stringify([
+      {
+        id: "blocked-test",
+        weekday: getShanghaiWeekday(slot.startAt),
+        hour: 12,
+        label: "大班课",
+        createdAt: new Date().toISOString(),
+      },
+    ]));
+
+    await expect(
+      createParentBooking({
+        slotId: slot.id,
+        studentName: "Phase Blocked Parent",
+        contactPhone: phone(80),
+        courseType: CourseType.ONE_TO_ONE,
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      createCoachBooking({
+        slotId: slot.id,
+        studentName: "Phase Blocked Coach",
+        courseType: CourseType.ONE_TO_ONE,
+      }),
+    ).rejects.toThrow();
+
+    await setWeeklyBlockedRules(null);
+
+    await createParentBooking({
+      slotId: slot.id,
+      studentName: "Phase Unblocked",
+      contactPhone: phone(81),
+      courseType: CourseType.ONE_TO_ONE,
+    });
+
+    expect(await activeCount(slot.id)).toBe(1);
+  });
+
+  it("rejects adding custom weekly blocked rules with future active bookings or duplicate time", async () => {
+    const slot = await createFutureSlotAt(9, 13);
+    const weekday = getShanghaiWeekday(slot.startAt);
+
+    await createParentBooking({
+      slotId: slot.id,
+      studentName: "Phase Active Before Block",
+      contactPhone: phone(82),
+      courseType: CourseType.ONE_TO_TWO,
+    });
+
+    await expect(
+      addCoachWeeklyBlockedRule({
+        weekday,
+        hour: 13,
+        label: "大班课",
+      }),
+    ).rejects.toThrow("该固定时间已有未来预约，请先处理相关预约后再设置为不可预约。");
+
+    await setWeeklyBlockedRules(JSON.stringify([
+      {
+        id: "duplicate-test",
+        weekday,
+        hour: 13,
+        label: "大班课",
+        createdAt: new Date().toISOString(),
+      },
+    ]));
+
+    await expect(
+      addCoachWeeklyBlockedRule({
+        weekday,
+        hour: 13,
+        label: "训练营",
+      }),
+    ).rejects.toThrow("该固定不可预约时间已存在。");
+
+    await setWeeklyBlockedRules(null);
+  });
+
   it("books an empty 1v1 slot and immediately makes it full", async () => {
     const slot = await createFutureSlot();
 

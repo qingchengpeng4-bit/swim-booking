@@ -19,6 +19,10 @@ import {
   PARENT_WEEKLY_SCHEDULE_TAG,
 } from "@/lib/schedule-cache";
 import { getParentScheduleRelease, getShanghaiDayEnd, isSlotReleasedForParent } from "@/services/schedule-release.service";
+import {
+  findWeeklyBlockedRuleForSlot,
+  getCoachWeeklyBlockedRules,
+} from "@/services/weekly-blocked-slots.service";
 
 type TxClient = Prisma.TransactionClient;
 
@@ -57,64 +61,70 @@ export async function getOpenSlots() {
   const releasedUntil = await getParentScheduleRelease();
   if (!releasedUntil) return [];
 
-  const slots = await prisma.slot.findMany({
-    where: {
-      startAt: {
-        lte: getShanghaiDayEnd(releasedUntil),
-      },
-      status: {
-        in: [SlotStatus.OPEN, SlotStatus.CANCELLED],
-      },
-    },
-    orderBy: {
-      startAt: "asc",
-    },
-    include: {
-      bookings: {
-        where: {
-          status: BookingStatus.ACTIVE,
+  const [slots, blockedRules] = await Promise.all([
+    prisma.slot.findMany({
+      where: {
+        startAt: {
+          lte: getShanghaiDayEnd(releasedUntil),
         },
-        select: {
-          id: true,
+        status: {
+          in: [SlotStatus.OPEN, SlotStatus.CANCELLED],
         },
       },
-    },
-  });
+      orderBy: {
+        startAt: "asc",
+      },
+      include: {
+        bookings: {
+          where: {
+            status: BookingStatus.ACTIVE,
+          },
+          select: {
+            id: true,
+          },
+        },
+      },
+    }),
+    getCoachWeeklyBlockedRules(),
+  ]);
 
-  return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
+  return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length, findWeeklyBlockedRuleForSlot(blockedRules, slot.startAt)?.label));
 }
 
 async function queryParentWeeklySlots(weekStartIso: string, weekEndIso: string, releasedUntil: string) {
-  const slots = await prisma.slot.findMany({
-    where: {
-      startAt: {
-        gte: new Date(weekStartIso),
-        lt: new Date(weekEndIso),
-        lte: getShanghaiDayEnd(releasedUntil),
-      },
-    },
-    orderBy: {
-      startAt: "asc",
-    },
-    select: {
-      id: true,
-      startAt: true,
-      endAt: true,
-      status: true,
-      courseType: true,
-      capacity: true,
-      bookings: {
-        where: {
-          status: BookingStatus.ACTIVE,
-        },
-        select: {
-          id: true,
+  const [slots, blockedRules] = await Promise.all([
+    prisma.slot.findMany({
+      where: {
+        startAt: {
+          gte: new Date(weekStartIso),
+          lt: new Date(weekEndIso),
+          lte: getShanghaiDayEnd(releasedUntil),
         },
       },
-    },
-  });
+      orderBy: {
+        startAt: "asc",
+      },
+      select: {
+        id: true,
+        startAt: true,
+        endAt: true,
+        status: true,
+        courseType: true,
+        capacity: true,
+        bookings: {
+          where: {
+            status: BookingStatus.ACTIVE,
+          },
+          select: {
+            id: true,
+          },
+        },
+      },
+    }),
+    getCoachWeeklyBlockedRules(),
+  ]);
 
-  return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length));
+  return slots.map((slot) => getSlotPublicSummary(slot, slot.bookings.length, findWeeklyBlockedRuleForSlot(blockedRules, slot.startAt)?.label));
 }
 
 export async function getParentWeeklySlots(weekStart: Date, weekEnd: Date, releasedUntil: string | null) {
@@ -150,37 +160,40 @@ export async function getCoachSlots() {
 }
 
 async function queryCoachWeeklySlots(weekStartIso: string, weekEndIso: string) {
-  const slots = await prisma.slot.findMany({
-    where: {
-      startAt: {
-        gte: new Date(weekStartIso),
-        lt: new Date(weekEndIso),
-      },
-    },
-    orderBy: {
-      startAt: "asc",
-    },
-    select: {
-      id: true,
-      startAt: true,
-      endAt: true,
-      status: true,
-      courseType: true,
-      capacity: true,
-      bookings: {
-        where: {
-          status: BookingStatus.ACTIVE,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-        select: {
-          studentName: true,
-          status: true,
+  const [slots, blockedRules] = await Promise.all([
+    prisma.slot.findMany({
+      where: {
+        startAt: {
+          gte: new Date(weekStartIso),
+          lt: new Date(weekEndIso),
         },
       },
-    },
-  });
+      orderBy: {
+        startAt: "asc",
+      },
+      select: {
+        id: true,
+        startAt: true,
+        endAt: true,
+        status: true,
+        courseType: true,
+        capacity: true,
+        bookings: {
+          where: {
+            status: BookingStatus.ACTIVE,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+          select: {
+            studentName: true,
+            status: true,
+          },
+        },
+      },
+    }),
+    getCoachWeeklyBlockedRules(),
+  ]);
 
   return slots.map((slot) => ({
     id: slot.id,
@@ -190,6 +203,7 @@ async function queryCoachWeeklySlots(weekStartIso: string, weekEndIso: string) {
     courseType: slot.courseType,
     capacity: slot.capacity ?? (slot.courseType ? getCourseCapacity(slot.courseType) : null),
     activeCount: slot.bookings.length,
+    blockedLabel: findWeeklyBlockedRuleForSlot(blockedRules, slot.startAt)?.label ?? null,
     bookings: slot.bookings,
   }));
 }
@@ -226,7 +240,8 @@ export async function getParentSlotDetail(slotId: string) {
   const releasedUntil = await getParentScheduleRelease();
   if (!isSlotReleasedForParent(slot.startAt, releasedUntil)) return null;
 
-  return toParentSlotDetail(slot, slot.bookings);
+  const blockedRules = await getCoachWeeklyBlockedRules();
+  return toParentSlotDetail(slot, slot.bookings, findWeeklyBlockedRuleForSlot(blockedRules, slot.startAt)?.label);
 }
 
 export async function getCoachSlotDetail(slotId: string) {
@@ -254,7 +269,8 @@ export async function getCoachSlotDetail(slotId: string) {
 
   if (!slot) return null;
 
-  return toCoachSlotDetail(slot, slot.bookings);
+  const blockedRules = await getCoachWeeklyBlockedRules();
+  return toCoachSlotDetail(slot, slot.bookings, findWeeklyBlockedRuleForSlot(blockedRules, slot.startAt)?.label);
 }
 
 export function getSlotPublicSummary(
@@ -267,9 +283,11 @@ export function getSlotPublicSummary(
     capacity: number | null;
   },
   activeCount: number,
+  blockedLabel?: string | null,
 ) {
   const displayStatus = calculateSlotDisplayStatus(slot, activeCount);
   const capacity = slot.capacity ?? (slot.courseType ? getCourseCapacity(slot.courseType) : null);
+  const isWeeklyBlocked = Boolean(blockedLabel);
 
   return {
     id: slot.id,
@@ -277,13 +295,14 @@ export function getSlotPublicSummary(
     endAt: slot.endAt.toISOString(),
     startText: formatShanghaiDateTime(slot.startAt),
     endText: formatShanghaiDateTime(slot.endAt),
-    status: displayStatus,
-    statusText: slotStatusText(displayStatus),
+    status: isWeeklyBlocked ? "CLOSED" : displayStatus,
+    statusText: blockedLabel ?? slotStatusText(displayStatus),
+    blockedLabel: blockedLabel ?? null,
     courseType: slot.courseType,
     courseTypeText: slot.courseType ? COURSE_LABELS[slot.courseType] : "未锁定",
     activeCount,
     capacity,
     remaining: capacity === null ? null : Math.max(capacity - activeCount, 0),
-    canBook: canParentBookSlot(slot, activeCount),
+    canBook: !isWeeklyBlocked && canParentBookSlot(slot, activeCount),
   };
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ScheduleReleasePanel } from "@/components/coach/ScheduleReleasePanel";
 import { CoachScheduleClient } from "@/components/coach/CoachScheduleClient";
+import { WeeklyBlockedSlotsPanel } from "@/components/coach/WeeklyBlockedSlotsPanel";
 import { PageHeader } from "@/components/common/PageHeader";
 import { WeekNavigator } from "@/components/parent/WeekNavigator";
 import { buildCoachWeeklySchedule } from "@/lib/coach-schedule";
@@ -10,6 +11,7 @@ import {
   getNextParentScheduleReleaseDate,
   getParentScheduleRelease,
 } from "@/services/schedule-release.service";
+import { getCoachWeeklyBlockedRules, SYSTEM_WEEKLY_BLOCKED_SLOTS } from "@/services/weekly-blocked-slots.service";
 
 type CoachSchedulePageProps = {
   week?: string;
@@ -17,9 +19,10 @@ type CoachSchedulePageProps = {
 
 export async function CoachSchedulePage({ week }: CoachSchedulePageProps) {
   const scheduleWeek = getScheduleWeek(week, new Date(), "/coach/calendar");
-  const [releasedUntil, latestSlotDate] = await Promise.all([
+  const [releasedUntil, latestSlotDate, customBlockedRules] = await Promise.all([
     getParentScheduleRelease(),
     getLatestGeneratedSlotDate(),
+    getCoachWeeklyBlockedRules(),
   ]);
   const nextReleaseUntil = getNextParentScheduleReleaseDate({
     currentReleasedUntil: releasedUntil,
@@ -52,6 +55,7 @@ export async function CoachSchedulePage({ week }: CoachSchedulePageProps) {
       </div>
 
       <ScheduleReleasePanel releasedUntil={releasedUntil} nextReleaseUntil={nextReleaseUntil} />
+      <WeeklyBlockedSlotsPanel systemRules={SYSTEM_WEEKLY_BLOCKED_SLOTS} customRules={customBlockedRules} />
 
       <div className="mt-5">
         <WeekNavigator

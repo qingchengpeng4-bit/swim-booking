@@ -13,6 +13,7 @@ export type ScheduleSlotSummary = {
   courseType: CourseType | null;
   activeCount: number;
   capacity: number | null;
+  blockedLabel?: string | null;
 };
 
 export type ScheduleCell = {
@@ -158,6 +159,16 @@ export function getScheduleWeek(week?: string, now = new Date(), basePath = "/pa
 }
 
 function cellForSlot(slot: ScheduleSlotSummary): Omit<ScheduleCell, "key"> {
+  if (slot.blockedLabel) {
+    return {
+      slotId: slot.id,
+      title: slot.blockedLabel,
+      subtitle: "不可预约",
+      tone: "gray",
+      href: null,
+    };
+  }
+
   if (slot.status === "CLOSED" || slot.status === "CANCELLED") {
     return {
       slotId: slot.id,

@@ -8,6 +8,7 @@ import { toParentBookingView } from "@/lib/privacy-rules";
 import { isDatabaseConnectionError, isRetryableTransactionError } from "@/lib/prisma-errors";
 import { canCoachAddBookingByTime, canParentBookByTime, canParentCancelByTime } from "@/lib/slot-time-rules";
 import { getParentScheduleRelease, isSlotReleasedForParent } from "@/services/schedule-release.service";
+import { findWeeklyBlockedRuleForSlot, getCoachWeeklyBlockedRules } from "@/services/weekly-blocked-slots.service";
 
 export type CreateBookingInput = {
   slotId: string;
@@ -58,6 +59,11 @@ async function createParentBookingOnce(input: CreateBookingInput) {
     const releasedUntil = await getParentScheduleRelease(tx);
     if (!isSlotReleasedForParent(slot.startAt, releasedUntil)) {
       throw new BusinessError(APP_ERRORS.SLOT_NOT_RELEASED);
+    }
+
+    const blockedRules = await getCoachWeeklyBlockedRules(tx);
+    if (findWeeklyBlockedRuleForSlot(blockedRules, slot.startAt)) {
+      throw new BusinessError(APP_ERRORS.SLOT_CLOSED);
     }
 
     const duplicate = await tx.booking.findFirst({
@@ -184,6 +190,11 @@ export async function createCoachBooking(input: CreateCoachBookingInput) {
 
     if (!canCoachAddBookingByTime(slot)) {
       throw new BusinessError(APP_ERRORS.SLOT_ALREADY_STARTED);
+    }
+
+    const blockedRules = await getCoachWeeklyBlockedRules(tx);
+    if (findWeeklyBlockedRuleForSlot(blockedRules, slot.startAt)) {
+      throw new BusinessError(APP_ERRORS.SLOT_CLOSED);
     }
 
     const activeBookings = await tx.booking.findMany({

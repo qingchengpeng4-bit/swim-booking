@@ -27,8 +27,8 @@ type CoachBookingLike = {
   cancelReason: string | null;
 };
 
-export function toParentSlotDetail(slot: PublicSlotLike, activeBookings: ParentBookingLike[]) {
-  const summary = getSlotPublicSummary(slot, activeBookings.length);
+export function toParentSlotDetail(slot: PublicSlotLike, activeBookings: ParentBookingLike[], blockedLabel?: string | null) {
+  const summary = getSlotPublicSummary(slot, activeBookings.length, blockedLabel);
 
   return {
     ...summary,
@@ -49,11 +49,11 @@ export function toCoachBookingView(booking: CoachBookingLike) {
   };
 }
 
-export function toCoachSlotDetail(slot: PublicSlotLike, bookings: CoachBookingLike[]) {
+export function toCoachSlotDetail(slot: PublicSlotLike, bookings: CoachBookingLike[], blockedLabel?: string | null) {
   const activeCount = bookings.filter((booking) => booking.status === BookingStatus.ACTIVE).length;
 
   return {
-    ...getSlotPublicSummary(slot, activeCount),
+    ...getSlotPublicSummary(slot, activeCount, blockedLabel),
     bookings: bookings.map(toCoachBookingView),
   };
 }
